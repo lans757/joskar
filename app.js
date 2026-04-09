@@ -113,6 +113,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.classList.toggle('active');
         });
 
+        // Auto-hide sidebar on scroll (Desktop only)
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const isMobile = window.innerWidth <= 991;
+            if (isMobile) return;
+
+            const currentScroll = window.scrollY;
+            
+            // Si bajamos más de 100px, colapsamos la barra automáticamente
+            if (currentScroll > 100 && currentScroll > lastScroll) {
+                if (!appContainer.classList.contains('sidebar-collapsed')) {
+                    appContainer.classList.add('sidebar-collapsed');
+                    // Opcionalmente no guardamos en localStorage para que sea solo una sesión de scroll
+                }
+            } 
+            
+            lastScroll = currentScroll;
+        });
+
         document.addEventListener('click', () => {
             btn.classList.remove('active');
         });

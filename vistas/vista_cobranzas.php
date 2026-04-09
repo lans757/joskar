@@ -281,25 +281,25 @@ tbody tr.clickable:hover { cursor: pointer; background: rgba(0, 180, 255, 0.1) !
 
     <!-- KPI CARDS -->
     <div class="metrics-grid">
-        <div class="metric-card warning">
+        <div class="card metric-card warning">
             <div class="metric-icon"><i class="fas fa-hashtag"></i></div>
             <div class="metric-content">
-                <div class="metric-label">Operaciones</div>
-                <div class="metric-value"><?php echo number_format($total_ops,0,',','.'); ?></div>
+                <span class="metric-label">Operaciones</span>
+                <p class="metric-value"><?php echo number_format($total_ops,0,',','.'); ?></p>
             </div>
         </div>
-        <div class="metric-card">
+        <div class="card metric-card primary">
             <div class="metric-icon"><i class="fas fa-money-bill-wave"></i></div>
             <div class="metric-content">
-                <div class="metric-label">Recaudado (BS)</div>
-                <div class="metric-value">Bs. <?php echo number_format($total_bs,2,',','.'); ?></div>
+                <span class="metric-label">Recaudado (BS)</span>
+                <p class="metric-value">Bs. <?php echo number_format($total_bs,2,',','.'); ?></p>
             </div>
         </div>
-        <div class="metric-card success">
+        <div class="card metric-card success">
             <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
             <div class="metric-content">
-                <div class="metric-label">Recaudado (USD)</div>
-                <div class="metric-value">$ <?php echo number_format($total_usd,2,'.',','); ?></div>
+                <span class="metric-label">Recaudado (USD)</span>
+                <p class="metric-value">$ <?php echo number_format($total_usd,2,'.',','); ?></p>
             </div>
         </div>
     </div>
@@ -335,8 +335,8 @@ tbody tr.clickable:hover { cursor: pointer; background: rgba(0, 180, 255, 0.1) !
                 <div class="sw">
                     <input type="text" name="f_txt" value="<?php echo htmlspecialchars($f_txt);?>" 
                            placeholder="Ej: Farmacia Tariba, 177465, FC00037919…">
-                    <button type="submit" class="btn-search">
-                        <i class="fas fa-magnifying-glass"></i> BUSCAR
+                    <button type="submit" class="btn-neon btn-cyan">
+                        <i class="fas fa-sync-alt"></i> ACTUALIZAR
                     </button>
                 </div>
             </div>
@@ -380,8 +380,8 @@ tbody tr.clickable:hover { cursor: pointer; background: rgba(0, 180, 255, 0.1) !
             <h3><i class="fas fa-list-ul"></i> Detalle Monitor Auditoría (SMOV)</h3>
             <div class="rng">
                 Mostrando del <?php echo $offset+1; ?> al <?php echo min($offset+$limit, $total_ops); ?> de <strong><?php echo $total_ops; ?></strong>
-                <button class="btn-csv" onclick="exportXls('table-audit','Detalle_SMOV')" style="margin-left:15px;">
-                    <i class="fas fa-file-excel"></i> DESCARGAR XLS
+                <button class="btn-neon btn-green" onclick="exportXls('table-audit','Detalle_SMOV')" style="margin-left:15px; height: 38px; font-size: 0.75rem; padding: 0 15px;">
+                    <i class="fas fa-file-excel"></i> Exportar XLS
                 </button>
             </div>
         </div>

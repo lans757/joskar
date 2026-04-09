@@ -553,38 +553,38 @@ tbody tr.clickable:hover { cursor:pointer; background:rgba(0,180,255,0.1) !impor
          ==================================================== -->
     <div class="metrics-grid">
         <!-- Total Ventas USD -->
-        <div class="metric-card success">
+        <div class="card metric-card success">
             <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
             <div class="metric-content">
-                <div class="metric-label">Total Ventas (USD)</div>
-                <div class="metric-value">$ <?php echo number_format($total_usd, 2, '.', ','); ?></div>
+                <span class="metric-label">Total Ventas (USD)</span>
+                <p class="metric-value">$ <?php echo number_format($total_usd, 2, '.', ','); ?></p>
             </div>
         </div>
 
         <!-- Total Ventas BS -->
-        <div class="metric-card">
+        <div class="card metric-card primary">
             <div class="metric-icon"><i class="fas fa-money-bill-wave"></i></div>
             <div class="metric-content">
-                <div class="metric-label">Total Ventas (BS)</div>
-                <div class="metric-value">Bs. <?php echo number_format($total_bs, 2, ',', '.'); ?></div>
+                <span class="metric-label">Total Ventas (BS)</span>
+                <p class="metric-value">Bs. <?php echo number_format($total_bs, 2, ',', '.'); ?></p>
             </div>
         </div>
 
         <!-- Pedidos Cerrados -->
-        <div class="metric-card warning">
+        <div class="card metric-card warning">
             <div class="metric-icon"><i class="fas fa-clipboard-check"></i></div>
             <div class="metric-content">
-                <div class="metric-label">Pedidos Registrados</div>
-                <div class="metric-value"><?php echo number_format($total_pedidos, 0, ',', '.'); ?></div>
+                <span class="metric-label">Pedidos Registrados</span>
+                <p class="metric-value"><?php echo number_format($total_pedidos, 0, ',', '.'); ?></p>
             </div>
         </div>
 
         <!-- Promedio USD por Vendedor -->
-        <div class="metric-card">
+        <div class="card metric-card info">
             <div class="metric-icon"><i class="fas fa-user-tie"></i></div>
             <div class="metric-content">
-                <div class="metric-label">Prom. USD / Vendedor</div>
-                <div class="metric-value">$ <?php echo number_format($prom_usd, 2, '.', ','); ?></div>
+                <span class="metric-label">Prom. USD / Vendedor</span>
+                <p class="metric-value">$ <?php echo number_format($prom_usd, 2, '.', ','); ?></p>
             </div>
         </div>
     </div>
@@ -629,8 +629,8 @@ tbody tr.clickable:hover { cursor:pointer; background:rgba(0,180,255,0.1) !impor
                     <input type="text" name="f_txt"
                            value="<?php echo htmlspecialchars($f_txt); ?>"
                            placeholder="Ej: María González, FC00012345…">
-                    <button type="submit" class="btn-search">
-                        <i class="fas fa-magnifying-glass"></i> BUSCAR
+                    <button type="submit" class="btn-neon btn-cyan">
+                        <i class="fas fa-sync-alt"></i> ACTUALIZAR
                     </button>
                 </div>
             </div>
@@ -643,8 +643,8 @@ tbody tr.clickable:hover { cursor:pointer; background:rgba(0,180,255,0.1) !impor
     <div class="card table-card" style="margin-top:25px;">
         <div class="t-header">
             <h3><i class="fas fa-chart-pie"></i> Participación de Ventas por Vendedor</h3>
-            <button class="btn-csv" onclick="exportXls('table-ranking','Ranking_Televentas')">
-                <i class="fas fa-file-excel"></i> DESCARGAR XLS
+            <button class="btn-neon btn-green" onclick="exportXls('table-ranking','Ranking_Televentas')" style="height:38px; font-size:0.75rem; padding:0 15px;">
+                <i class="fas fa-file-excel"></i> Exportar XLS
             </button>
         </div>
 
@@ -793,10 +793,10 @@ tbody tr.clickable:hover { cursor:pointer; background:rgba(0,180,255,0.1) !impor
             <div class="rng">
                 Mostrando del <?php echo $offset + 1; ?> al <?php echo min($offset + $limit, $total_rows); ?>
                 de <strong><?php echo $total_rows; ?></strong>
-                <button class="btn-csv"
+                <button class="btn-neon btn-green" 
                         onclick="exportXls('table-detalle','Detalle_Televentas')"
-                        style="margin-left:15px;">
-                    <i class="fas fa-file-excel"></i> DESCARGAR XLS
+                        style="margin-left:15px; height:38px; font-size:0.75rem; padding:0 15px;">
+                    <i class="fas fa-file-excel"></i> Exportar XLS
                 </button>
             </div>
         </div>

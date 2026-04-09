@@ -88,7 +88,7 @@ h1, h2, h3, h4, h5, h6 {
     flex-direction: column;
     position: fixed;
     height: 100vh;
-    z-index: 1000;
+    z-index: 1200;
     -webkit-transition: -webkit-transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -195,7 +195,7 @@ h1, h2, h3, h4, h5, h6 {
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 990;
+    z-index: 1150;
     display: none;
     -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
@@ -278,11 +278,15 @@ h1, h2, h3, h4, h5, h6 {
     -webkit-align-items: center;
     align-items: center;
     padding: 15px 40px;
-    background: rgba(20, 28, 47, 0.4);
+    background: rgba(10, 15, 29, 0.85);
     border-bottom: 1px solid var(--border-light);
     margin-bottom: 30px;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
 }
 
 .user-profile {
@@ -521,6 +525,30 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--accent-green);
     background: rgba(0, 230, 118, 0.15);
     box-shadow: 0 0 15px rgba(0, 230, 118, 0.1);
+}
+
+.metric-card.primary {
+    box-shadow: 0 0 20px rgba(0, 180, 255, 0.05);
+    border-left: 4px solid var(--primary);
+    background: linear-gradient(135deg, #0f1a2e, rgba(20, 28, 47, 0.7));
+}
+.metric-card.primary::before { background: var(--primary); opacity: 0.07; }
+.metric-card.primary .metric-icon {
+    color: var(--primary);
+    background: rgba(0, 180, 255, 0.15);
+    box-shadow: 0 0 15px rgba(0, 180, 255, 0.1);
+}
+
+.metric-card.info {
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.05);
+    border-left: 4px solid #00cada;
+    background: linear-gradient(135deg, #0a1f24, rgba(20, 28, 47, 0.7));
+}
+.metric-card.info::before { background: #00cada; opacity: 0.07; }
+.metric-card.info .metric-icon {
+    color: #00cada;
+    background: rgba(0, 202, 218, 0.15);
+    box-shadow: 0 0 15px rgba(0, 202, 218, 0.1);
 }
 
 .metric-icon {
