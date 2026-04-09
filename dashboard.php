@@ -66,13 +66,13 @@ try {
             <!-- Televentas -->
             <a href="vistas/vista_televentas.php" class="card dept-card">
                 <div>
-                    <div class="dept-icon"><i class="fas fa-headset"></i></div>
+                    <div class="dept-icon" style="color: var(--accent-green);"><i class="fas fa-headset"></i></div>
                     <h3>Televentas</h3>
                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Monitoreo de pedidos y efectividad comercial.</p>
                 </div>
                 <div class="dept-status">
                     <?php if ($televentas_pedidos > 0): ?>
-                        <div class="status-dot" style="background: var(--accent-yellow); box-shadow: 0 0 10px var(--accent-yellow);"></div> <?php echo $televentas_pedidos; ?> Pedidos pendientes
+                        <div class="status-dot" style="background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green);"></div> <?php echo $televentas_pedidos; ?> Pedidos pendientes
                     <?php else: ?>
                         <div class="status-dot"></div> Sin pedidos pendientes
                     <?php endif; ?>
@@ -82,21 +82,21 @@ try {
             <!-- Compras -->
             <a href="vistas/vista_compras.php" class="card dept-card">
                 <div>
-                    <div class="dept-icon" style="color: var(--accent-yellow);"><i class="fas fa-shopping-cart"></i></div>
+                    <div class="dept-icon" style="color: var(--accent-yellow);"><i class="fas fa-shopping-basket"></i></div>
                     <h3>Compras</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Gestión de órdenes y recepción de mercancía.</p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Gestión de órdenes, proveedores y mercancia.</p>
                 </div>
                 <div class="dept-status">
-                    <div class="status-dot" style="background: var(--accent-yellow); box-shadow: 0 0 10px var(--accent-yellow);"></div> <?php echo $compras_pendientes; ?> Órdenes pendientes (Demo)
+                    <div class="status-dot" style="background: var(--accent-yellow); box-shadow: 0 0 10px var(--accent-yellow);"></div> <?php echo $compras_pendientes; ?> Órdenes activas
                 </div>
             </a>
 
             <!-- Administración -->
             <a href="vistas/vista_administracion.php" class="card dept-card">
                 <div>
-                    <div class="dept-icon" style="color: var(--primary);"><i class="fas fa-building"></i></div>
+                    <div class="dept-icon" style="color: var(--primary);"><i class="fas fa-landmark"></i></div>
                     <h3>Administración</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Control de bancos, gastos e informes contables.</p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Gestión bancaria, gastos e informes contables.</p>
                 </div>
                 <div class="dept-status">
                     <div class="status-dot" style="background: var(--primary); box-shadow: 0 0 10px var(--primary);"></div> <?php echo $admin_bancos; ?> Entidades operativas
@@ -106,15 +106,15 @@ try {
             <!-- Cobranzas -->
             <a href="vistas/vista_cobranzas.php" class="card dept-card">
                 <div>
-                    <div class="dept-icon" style="color: var(--accent-red);"><i class="fas fa-hand-holding-usd"></i></div>
+                    <div class="dept-icon" style="color: var(--accent-red);"><i class="fas fa-coins"></i></div>
                     <h3>Cobranzas</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Recuperación de cartera y análisis de riesgo.</p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Recuperación de cartera y conciliación de pagos.</p>
                 </div>
                 <div class="dept-status">
                     <?php if ($cobranzas_ops > 0): ?>
-                        <div class="status-dot" style="background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green);"></div> <?php echo $cobranzas_ops; ?> Operaciones hoy
+                        <div class="status-dot" style="background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red);"></div> <?php echo $cobranzas_ops; ?> Operaciones hoy
                     <?php else: ?>
-                        <div class="status-dot" style="background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red);"></div> Sin operaciones hoy
+                        <div class="status-dot" style="background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); opacity: 0.3;"></div> Sin operaciones hoy
                     <?php endif; ?>
                 </div>
             </a>
@@ -122,12 +122,12 @@ try {
             <!-- Almacén -->
             <a href="vistas/vista_almacen.php" class="card dept-card">
                 <div>
-                    <div class="dept-icon" style="color: var(--primary);"><i class="fas fa-warehouse"></i></div>
+                    <div class="dept-icon" style="color: var(--accent-orange);"><i class="fas fa-warehouse"></i></div>
                     <h3>Almacén</h3>
                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Control de stock físico, rotación y alertas críticas.</p>
                 </div>
                 <div class="dept-status">
-                    <div class="status-dot"></div> <?php echo number_format($almacen_stock, 0, ',', '.'); ?> Items en existencia
+                    <div class="status-dot" style="background: var(--accent-orange); box-shadow: 0 0 10px var(--accent-orange);"></div> <?php echo number_format($almacen_stock, 0, ',', '.'); ?> Items en existencia
                     <?php if ($almacen_critico > 0): ?>
                          <span style="color:var(--accent-red); font-weight:bold; margin-left: 8px;">(<?php echo $almacen_critico; ?> Críticos)</span>
                     <?php endif; ?>
@@ -137,13 +137,13 @@ try {
             <!-- Gerencia -->
             <a href="vistas/vista_gerencia.php" class="card dept-card">
                 <div>
-                    <div class="dept-icon" style="color: var(--accent-green);"><i class="fas fa-chart-line"></i></div>
+                    <div class="dept-icon" style="color: #a855f7;"><i class="fas fa-chart-pie"></i></div>
                     <h3>Gerencia</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Reportes de rentabilidad y KPI estratégicos.</p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Análisis de rentabilidad y KPI estratégicos.</p>
                 </div>
                 <div class="dept-status">
                     <?php if ($gerencia_ventas > 0): ?>
-                        <div class="status-dot" style="background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green);"></div> <?php echo number_format($gerencia_ventas, 0, ',', '.'); ?> Facturas (30d)
+                        <div class="status-dot" style="background: #a855f7; box-shadow: 0 0 10px #a855f7;"></div> <?php echo number_format($gerencia_ventas, 0, ',', '.'); ?> Facturas (30d)
                     <?php else: ?>
                         <div class="status-dot"></div> Sin ventas recientes
                     <?php endif; ?>
