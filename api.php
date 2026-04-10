@@ -32,6 +32,9 @@ $sort_d = ($_GET['sort_dir'] ?? 'ASC') === 'DESC' ? 'DESC' : 'ASC';
 // Almacén por defecto
 if (empty($almacen)) $almacen = '0001';
 
+$codprov   = $conn->real_escape_string($_GET['codprov'] ?? '');
+$prov_cond = !empty($codprov) ? "AND b.prvreg = '$codprov'" : "";
+
 // ─── Búsqueda ────────────────────────────────────────────────────────────────
 $search_cond = !empty($search)
     ? "AND (b.codigo LIKE '%$search%' OR b.descrip LIKE '%$search%')"
@@ -57,8 +60,8 @@ function alertaCond($alerta, $dias_expr) {
 }
 
 // ─── Métricas ─────────────────────────────────────────────────────────────────
-function getCounts($conn, $almacen, $dias_expr) {
-    $counts = ['critical' => 0, 'low' => 0, 'ok' => 0, 'totalH1' => 0];
+function getCounts($conn, $almacen, $dias_expr, $prov_cond) {
+    $counts = ['critical' => 0, 'low' => 0, 'ok' => 0, 'totalH1' => 0, 'valorUSD' => 0];
 
     // Total de productos con stock en el almacén
     $res = $conn->query("
@@ -67,6 +70,7 @@ function getCounts($conn, $almacen, $dias_expr) {
         JOIN itsinv i ON b.codigo = i.codigo
         WHERE i.alma = '$almacen'
           AND i.existen >= 1
+          $prov_cond
     ");
     if ($res) $counts['totalH1'] = (int)$res->fetch_assoc()['total'];
 
@@ -78,6 +82,7 @@ function getCounts($conn, $almacen, $dias_expr) {
         WHERE i.alma = '$almacen'
           AND i.existen >= 1
           AND $dias_expr < 10
+          $prov_cond
     ");
     if ($res) $counts['critical'] = (int)$res->fetch_assoc()['total'];
 
@@ -89,6 +94,7 @@ function getCounts($conn, $almacen, $dias_expr) {
         WHERE i.alma = '$almacen'
           AND i.existen > 0
           AND $dias_expr BETWEEN 10 AND 30
+          $prov_cond
     ");
     if ($res) $counts['low'] = (int)$res->fetch_assoc()['total'];
 
@@ -100,15 +106,25 @@ function getCounts($conn, $almacen, $dias_expr) {
         WHERE i.alma = '$almacen'
           AND i.existen > 0
           AND $dias_expr > 30
+          $prov_cond
     ");
     if ($res) $counts['ok'] = (int)$res->fetch_assoc()['total'];
+
+    // VALOR USD total del almacén
+    $res = $conn->query("
+        SELECT SUM(i.existen * b.pondd) as total
+        FROM sinv b
+        JOIN itsinv i ON b.codigo = i.codigo
+        WHERE i.alma = '$almacen' AND i.existen > 0 $prov_cond
+    ");
+    if ($res) $counts['valorUSD'] = (float)$res->fetch_assoc()['total'];
 
     return $counts;
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 try {
-    $metrics = getCounts($conn, $almacen, $dias_expr);
+    $metrics = getCounts($conn, $almacen, $dias_expr, $prov_cond);
 
     // ── ALERTAS DE STOCK ──────────────────────────────────────────────────────
     if ($action === 'alertas' || $action === 'alerts') {
@@ -123,6 +139,7 @@ try {
               AND i.existen >= 1
               AND $alerta_cond
               $search_cond
+              $prov_cond
         ";
 
         // Total para paginación
@@ -180,6 +197,7 @@ try {
               AND i.alma = '$almacen'
               AND i.existen >= 1
               $search_cond
+              $prov_cond
         ";
 
         // Aplicar filtro de alerta también en movimientos

@@ -57,10 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const search = document.getElementById('filter-search').value;
         const alerta = document.getElementById('filter-alerta').value;
         const almacen = document.getElementById('filter-almacen').value;
+        const codprov = document.getElementById('filter-prov') ? document.getElementById('filter-prov').value : '';
         
         const isVista = window.location.pathname.includes('vistas/');
         const apiPath = isVista ? '../api.php' : 'api.php';
-        let url = `${apiPath}?action=${action}&limit=${itemsPerPage}&offset=${offset}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&sort_field=${sortField}&sort_dir=${sortDir}`;
+        let url = `${apiPath}?action=${action}&limit=${itemsPerPage}&offset=${offset}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&codprov=${codprov}&sort_field=${sortField}&sort_dir=${sortDir}`;
         
         try {
             const response = await fetch(url);
@@ -220,11 +221,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const search = document.getElementById('filter-search').value;
         const alerta = document.getElementById('filter-alerta').value;
         const almacen = document.getElementById('filter-almacen').value;
+        const codprov = document.getElementById('filter-prov') ? document.getElementById('filter-prov').value : '';
         
         const isVista = window.location.pathname.includes('vistas/');
         const exportPath = isVista ? '../export_excel.php' : 'export_excel.php';
         
-        let url = `${exportPath}?action=${currentTab}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}`;
+        let url = `${exportPath}?action=${currentTab}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&codprov=${codprov}`;
         window.location.href = url;
     };
 
@@ -345,6 +347,13 @@ document.addEventListener('DOMContentLoaded', () => {
         currentPage = 1;
         loadData();
     });
+
+    if (document.getElementById('filter-prov')) {
+        document.getElementById('filter-prov').addEventListener('change', () => {
+            currentPage = 1;
+            loadData();
+        });
+    }
 
     let searchTimeout;
     document.getElementById('filter-search').addEventListener('input', () => {

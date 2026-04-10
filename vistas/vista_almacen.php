@@ -5,6 +5,11 @@ $path_prefix = "../";
 
 include('../includes/header.php');
 include('../includes/sidebar.php');
+
+// Fetch providers for filter
+require_once('../includes/db.php');
+$stmt_prov = $pdo->query("SELECT proveed, nombre FROM sprv ORDER BY nombre ASC");
+$proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <main class="main-content">
@@ -60,6 +65,13 @@ include('../includes/sidebar.php');
                     <p class="metric-value" id="count-ok">—</p>
                 </div>
             </div>
+            <div class="card metric-card info" style="border-left-color: var(--primary);">
+                <div class="metric-icon" style="color:var(--primary);"><i class="fas fa-dollar-sign"></i></div>
+                <div class="metric-content">
+                    <span class="metric-label">Valor Inventario</span>
+                    <p class="metric-value" id="val-usd">—</p>
+                </div>
+            </div>
         </div>
 
         <!-- Filtros -->
@@ -85,6 +97,16 @@ include('../includes/sidebar.php');
                         <option value="critical">ESTADO CRÍTICO</option>
                         <option value="low">BAJO MÍNIMO</option>
                         <option value="ok">ESTADO ÓPTIMO</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Proveedor</label>
+                    <select id="filter-prov" style="min-width: 180px;">
+                        <option value="">TODOS LOS PROVEEDORES</option>
+                        <?php foreach($proveedores as $p): ?>
+                            <option value="<?php echo $p['proveed']; ?>"><?php echo htmlspecialchars($p['nombre']); ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 
@@ -214,6 +236,29 @@ include('../includes/sidebar.php');
 </main>
 
 <?php
-$extraScripts = "<script src='../dashboard.js'></script>";
+$extraScripts = '
+<script>
+function refreshData() {
+    const almacen = document.getElementById("filter-almacen").value;
+    const alerta = document.getElementById("filter-alerta").value;
+    const search = document.getElementById("filter-search").value;
+    const codprov = document.getElementById("filter-prov").value;
+    
+    fetch(`../api.php?action=alertas&almacen=${almacen}&alerta=${alerta}&search=${search}&codprov=${codprov}`)
+        .then(r => r.json())
+        .then(res => {
+            const m = res.metrics;
+            document.getElementById("total-inventory-count").innerText = m.totalH1.toLocaleString("es-VE");
+            document.getElementById("count-critical").innerText = m.critical.toLocaleString("es-VE");
+            document.getElementById("count-low").innerText = m.low.toLocaleString("es-VE");
+            document.getElementById("count-ok").innerText = m.ok.toLocaleString("es-VE");
+            document.getElementById("val-usd").innerText = "$ " + m.valorUSD.toLocaleString("es-VE", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            if(window.renderTable) window.renderTable(res.data);
+        });
+}
+document.addEventListener("DOMContentLoaded", refreshData);
+</script>
+<script src="../dashboard.js"></script>';
 include('../includes/footer.php');
 ?>

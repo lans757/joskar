@@ -96,6 +96,9 @@ include('../includes/sidebar.php');
         
         <!-- Navegación -->
         <nav class="module-nav">
+            <a href="vista_almacen.php" class="nav-item">
+                <i class="fas fa-home"></i> <span>Inicio</span>
+            </a>
             <a href="almacen_articulos_comprados.php" class="nav-item">
                 <i class="fas fa-list"></i> <span>Artículos Comprados</span>
             </a>

@@ -141,8 +141,7 @@ function formatDL($val) { return '$ ' . number_format($val, 2, ',', '.'); }
     <!-- Navegación de Módulo -->
     <nav class="module-nav">
         <a href="vista_almacen.php" class="nav-item">
-            <i class="fas fa-chevron-left"></i>
-            <span>Volver</span>
+            <i class="fas fa-home"></i> <span>Inicio</span>
         </a>
         <a href="almacen_articulos_comprados.php" class="nav-item">
             <i class="fas fa-list"></i>
