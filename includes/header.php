@@ -2,7 +2,7 @@
 // Default values if not set
 if (!isset($pageTitle)) $pageTitle = "ProteoERP | Dashboard";
 if (!isset($path_prefix)) $path_prefix = "";
-$cssVersion = filemtime($_SERVER['DOCUMENT_ROOT'] . '/noti_pro/style.css');
+$cssVersion = filemtime(dirname(__DIR__) . '/style.css');
 ?>
 <!DOCTYPE html>
 <html lang='es'>
