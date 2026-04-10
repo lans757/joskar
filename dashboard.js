@@ -58,10 +58,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const alerta = document.getElementById('filter-alerta').value;
         const almacen = document.getElementById('filter-almacen').value;
         const codprov = document.getElementById('filter-prov') ? document.getElementById('filter-prov').value : '';
+        const urlParams = new URLSearchParams(window.location.search);
+        const marca = urlParams.get('marca') || '';
         
         const isVista = window.location.pathname.includes('vistas/');
         const apiPath = isVista ? '../api.php' : 'api.php';
-        let url = `${apiPath}?action=${action}&limit=${itemsPerPage}&offset=${offset}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&codprov=${codprov}&sort_field=${sortField}&sort_dir=${sortDir}`;
+        let url = `${apiPath}?action=${action}&limit=${itemsPerPage}&offset=${offset}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&codprov=${codprov}&marca=${encodeURIComponent(marca)}&sort_field=${sortField}&sort_dir=${sortDir}`;
         
         try {
             const response = await fetch(url);
@@ -124,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAlerts(data, total, result) {
         if (data.length === 0) {
             tableAlertasBody.innerHTML = '<tr><td colspan="7" class="text-center">No hay alertas</td></tr>';
-            renderMetrics(result.metrics);
+            renderMetrics(result.metrics, total);
             renderPagination(0);
             return;
         }
@@ -141,7 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const sugerido = Math.max(0, (vdp * 15) - exist);
             
             let statusLabel, statusClass;
-            if (diStock < 10 || exist <= 0) {
+            if (exist <= 0) {
+                statusLabel = 'Agotado'; statusClass = 'badge-critical';
+            } else if (diStock < 10) {
                 statusLabel = 'Crítico'; statusClass = 'badge-critical';
             } else if (diStock <= 30) {
                 statusLabel = 'Atención'; statusClass = 'badge-low';
@@ -153,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr>
                     <td><span class="code-badge">${item.codigo}</span></td>
                     <td class="product-name">${item.descrip}</td>
+                    <td><small style="color:var(--text-muted);">${item.proveedor || 'N/A'}</small></td>
                     <td class="text-right"><b>${exist.toFixed(0)}</b></td>
                     <td class="text-right">${vdp.toFixed(2)}</td>
                     <td class="text-right">${minStock.toFixed(0)}</td>
@@ -162,22 +167,35 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
 
-        renderMetrics(result.metrics);
+        renderMetrics(result.metrics, total);
         renderPagination(total);
     }
 
-    function renderMetrics(metrics) {
+    function renderMetrics(metrics, total) {
         if (!metrics) return;
-        countCritical.textContent = metrics.critical || 0;
-        countLow.textContent = metrics.low || 0;
-        countOk.textContent = metrics.ok || 0;
-        if (totalInventoryCount) totalInventoryCount.textContent = metrics.totalH1 || 0;
+        countCritical.textContent = (metrics.critical || 0).toLocaleString('es-VE');
+        countLow.textContent = (metrics.low || 0).toLocaleString('es-VE');
+        countOk.textContent = (metrics.ok || 0).toLocaleString('es-VE');
+        
+        const countOut = document.getElementById('count-out');
+        if (countOut) countOut.textContent = (metrics.out || 0).toLocaleString('es-VE');
+
+        if (totalInventoryCount) {
+            const displayTotal = total !== undefined ? total : metrics.totalH1;
+            totalInventoryCount.textContent = (displayTotal || 0).toLocaleString('es-VE');
+        }
+        
+        // Valor USD
+        const valUsdEl = document.getElementById('val-usd');
+        if (valUsdEl && metrics.valorUSD !== undefined) {
+            valUsdEl.textContent = '$ ' + metrics.valorUSD.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
     }
 
     function renderMovements(data, total, result) {
         if (data.length === 0) {
             tableMovimientosBody.innerHTML = '<tr><td colspan="6" class="text-center">Sin datos</td></tr>';
-            renderMetrics(result ? result.metrics : null);
+            renderMetrics(result ? result.metrics : null, total);
             renderPagination(0);
             return;
         }
@@ -190,13 +208,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td><small style="color: var(--text-muted); font-weight: 600;">${item.grupo || 'GENERAL'}</small></td>
                     <td><span class="code-badge">${item.codigo}</span></td>
                     <td class="product-name">${item.descrip}</td>
+                    <td><small style="color:var(--text-muted);">${item.proveedor || 'N/A'}</small></td>
                     <td class="text-right" style="color: var(--text-main); font-weight: 600;">${(parseFloat(item.ventau) || 0).toFixed(2)}</td>
                     <td class="text-right"><b>${parseFloat(item.existen).toFixed(0)}</b></td>
                     <td class="text-center"><b style="color:${statusColor}">${diStock.toFixed(0)} d</b></td>
                 </tr>
             `;
         }).join('');
-        renderMetrics(result.metrics);
+        renderMetrics(result.metrics, total);
         renderPagination(total);
     }
 
@@ -365,6 +384,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Initial Load
+    // Sync filters with URL parameters if present (for deep linking from KPI dashboard)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('alerta')) {
+        const el = document.getElementById('filter-alerta');
+        if (el) el.value = urlParams.get('alerta');
+    }
+    if (urlParams.has('almacen')) {
+        const el = document.getElementById('filter-almacen');
+        if (el) el.value = urlParams.get('almacen');
+    }
+    if (urlParams.has('codprov')) {
+        const el = document.getElementById('filter-prov');
+        if (el) el.value = urlParams.get('codprov');
+    }
+    if (urlParams.has('search')) {
+        const el = document.getElementById('filter-search');
+        if (el) el.value = urlParams.get('search');
+    }
+
     loadData();
 
     // Auto Refresh (solo cuando la pestaña está visible)

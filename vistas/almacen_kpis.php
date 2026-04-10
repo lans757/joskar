@@ -8,6 +8,21 @@
 
 require_once('../includes/db.php');
 
+// --- FILTROS ---
+$f_ini   = $_GET['f_ini'] ?? date('Y-01-01');
+$f_fin   = $_GET['f_fin'] ?? date('Y-m-d');
+$codprov = $_GET['codprov'] ?? '';
+
+// Construir condición de proveedor
+$prov_cond   = !empty($codprov) ? "AND prvreg = '$codprov'" : "";
+$prov_cond_v  = !empty($codprov) ? "AND v.prvreg = '$codprov'" : "";
+$prov_cond_v2 = !empty($codprov) ? "AND v2.prvreg = '$codprov'" : "";
+$prov_cond_i  = !empty($codprov) ? "AND i.prvreg = '$codprov'" : "";
+
+// Fetch providers for select
+$stmt_provs = $pdo->query("SELECT proveed, nombre FROM sprv ORDER BY nombre ASC");
+$proveedores = $stmt_provs->fetchAll(PDO::FETCH_ASSOC);
+
 // --- CÁLCULO DE KPIs ---
 
 // 1. Resumen de Inventario General
@@ -19,20 +34,32 @@ $stmt_inv = $pdo->query("
         SUM(CASE WHEN existen <= 0 THEN 1 ELSE 0 END) as items_sin_stock,
         SUM(CASE WHEN existen > 0 THEN 1 ELSE 0 END) as items_con_stock
     FROM sinv
+    WHERE 1=1 $prov_cond
 ");
 $inv_summary = $stmt_inv->fetch(PDO::FETCH_ASSOC);
 
-// --- PERIODOS DE ANÁLISIS ---
-$f_ini = $_GET['f_ini'] ?? date('Y-01-01'); // Por defecto todo el año
-$f_fin = $_GET['f_fin'] ?? date('Y-m-d');
-
-// 2. Compras del Periodo
-$stmt_compras = $pdo->prepare("SELECT SUM(ctotald) FROM scst WHERE recep BETWEEN ? AND ?");
-$stmt_compras->execute([$f_ini, $f_fin]);
+// 2. Compras del Periodo (Join con sinv para filtrar por proveedor si es necesario)
+// Si solo queremos compras de ESE proveedor:
+$stmt_compras = $pdo->prepare("
+    SELECT SUM(ctotald) FROM scst 
+    WHERE recep BETWEEN ? AND ? 
+    " . (!empty($codprov) ? "AND proveed = ?" : "") . "
+");
+if (!empty($codprov)) {
+    $stmt_compras->execute([$f_ini, $f_fin, $codprov]);
+} else {
+    $stmt_compras->execute([$f_ini, $f_fin]);
+}
 $compras_periodo = $stmt_compras->fetchColumn() ?: 0;
 
-// 3. Ventas del Periodo (itpfac)
-$stmt_ventas = $pdo->prepare("SELECT SUM(totad) FROM itpfac WHERE fecha BETWEEN ? AND ?");
+// 3. Ventas del Periodo (itpfac joins sinv para proveedor)
+$stmt_ventas = $pdo->prepare("
+    SELECT SUM(i.totad) 
+    FROM itpfac i
+    INNER JOIN sinv v ON i.codigoa = v.codigo
+    WHERE i.fecha BETWEEN ? AND ? 
+    $prov_cond_v
+");
 $stmt_ventas->execute([$f_ini, $f_fin]);
 $ventas_periodo = $stmt_ventas->fetchColumn() ?: 0;
 
@@ -40,7 +67,7 @@ $ventas_periodo = $stmt_ventas->fetchColumn() ?: 0;
 $stmt_marcas_val = $pdo->query("
     SELECT marca, SUM(existen * pondd) as valor 
     FROM sinv 
-    WHERE existen > 0 
+    WHERE existen > 0 $prov_cond
     GROUP BY marca 
     ORDER BY valor DESC 
     LIMIT 5
@@ -59,7 +86,7 @@ $stmt_marcas_rot = $pdo->prepare("
     SELECT v.marca, SUM(i.cana) as unidades
     FROM itpfac i
     INNER JOIN sinv v ON i.codigoa = v.codigo
-    WHERE i.fecha BETWEEN ? AND ?
+    WHERE i.fecha BETWEEN ? AND ? $prov_cond_v
     GROUP BY v.marca
     ORDER BY unidades DESC
     LIMIT 5
@@ -67,13 +94,13 @@ $stmt_marcas_rot = $pdo->prepare("
 $stmt_marcas_rot->execute([$f_ini, $f_fin]);
 $marcas_rot = $stmt_marcas_rot->fetchAll(PDO::FETCH_ASSOC);
 
-// 6. Evolución Mensual (Últimos 6 meses con datos reales)
 $stmt_evol = $pdo->query("
     SELECT 
-        DATE_FORMAT(fecha, '%Y-%m') as mes,
-        SUM(totad) as venta_usd
-    FROM itpfac 
-    WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+        DATE_FORMAT(i.fecha, '%Y-%m') as mes,
+        SUM(i.totad) as venta_usd
+    FROM itpfac i
+    INNER JOIN sinv v ON i.codigoa = v.codigo
+    WHERE i.fecha >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) $prov_cond_v
     GROUP BY mes
     ORDER BY mes ASC
 ");
@@ -87,15 +114,17 @@ $stmt_mando = $pdo->prepare("
         SUM(CASE WHEN v.existen <= 0 THEN 1 ELSE 0 END) as items_out,
         SUM(v.existen * v.pondd) as valor_inv,
         COALESCE(s.unid, 0) as v_unid,
-        COALESCE(s.monto, 0) as v_monto
+        COALESCE(s.monto, 0) as v_monto,
+        MAX(v.prvreg) as default_prov
     FROM sinv v
     LEFT JOIN (
         SELECT v2.marca, SUM(i.cana) as unid, SUM(i.totad) as monto
         FROM itpfac i
         INNER JOIN sinv v2 ON i.codigoa = v2.codigo
-        WHERE i.fecha BETWEEN :ini AND :fin
+        WHERE i.fecha BETWEEN :ini AND :fin $prov_cond_v2
         GROUP BY v2.marca
     ) s ON v.marca = s.marca
+    WHERE 1=1 $prov_cond_v
     GROUP BY v.marca
     HAVING valor_inv > 0 OR v_monto > 0
     ORDER BY valor_inv DESC
@@ -150,6 +179,17 @@ include('../includes/sidebar.php');
                     <label>Hasta</label>
                     <input type="date" name="f_fin" value="<?php echo $f_fin; ?>">
                 </div>
+                <div class="filter-group">
+                    <label>Proveedor</label>
+                    <select name="codprov" style="min-width: 200px;">
+                        <option value="">TODOS LOS PROVEEDORES</option>
+                        <?php foreach($proveedores as $p): ?>
+                            <option value="<?php echo $p['proveed']; ?>" <?php echo $codprov == $p['proveed'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($p['nombre']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="btn-group">
                     <button type="submit" class="btn-neon btn-cyan"><i class="fas fa-search"></i> Filtrar KPI</button>
                 </div>
@@ -158,14 +198,14 @@ include('../includes/sidebar.php');
 
         <!-- Métricas Principales -->
         <div class="metrics-grid">
-            <div class="card metric-card">
+            <a href="vista_almacen.php?alerta=all<?php echo $codprov ? '&codprov='.$codprov : ''; ?>" class="card metric-card" style="text-decoration: none;">
                 <div class="metric-icon" style="color:var(--primary);"><i class="fas fa-warehouse"></i></div>
                 <div class="metric-content">
                     <span class="metric-label">Valor del Inventario</span>
                     <p class="metric-value">$ <?php echo number_format($inv_summary['valor_total_usd'], 2, ',', '.'); ?></p>
                     <span class="metric-trend"><?php echo number_format($inv_summary['items_con_stock'], 0, ',', '.'); ?> artículos activos</span>
                 </div>
-            </div>
+            </a>
             <div class="card metric-card">
                 <div class="metric-icon" style="color:var(--accent-green);"><i class="fas fa-shopping-cart"></i></div>
                 <div class="metric-content">
@@ -184,14 +224,14 @@ include('../includes/sidebar.php');
                     </span>
                 </div>
             </div>
-            <div class="card metric-card">
+            <a href="vista_almacen.php?alerta=out<?php echo $codprov ? '&codprov='.$codprov : ''; ?>" class="card metric-card" style="text-decoration: none;">
                 <div class="metric-icon" style="color:var(--accent-red);"><i class="fas fa-box-open"></i></div>
                 <div class="metric-content">
                     <span class="metric-label">Productos sin Stock</span>
                     <p class="metric-value" style="color:var(--accent-red);"><?php echo number_format($inv_summary['items_sin_stock'], 0, ',', '.'); ?></p>
-                    <span class="metric-trend"><?php echo number_format(($inv_summary['items_sin_stock'] / $inv_summary['total_items']) * 100, 1); ?>% de ruptura</span>
+                    <span class="metric-trend"><?php echo number_format(($inv_summary['items_sin_stock'] / ($inv_summary['total_items'] ?: 1)) * 100, 1); ?>% de ruptura</span>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Sección de Gráficos -->
@@ -263,12 +303,23 @@ include('../includes/sidebar.php');
                             // Limitar rotación visual para evitar porcentajes imposibles si hay poca inversión
                             $rot_display = $rotacion > 1 ? 1 : $rotacion;
                             $color_rot = $rot_display > 0.5 ? '#00ffc3' : ($rot_display > 0.1 ? '#00b4ff' : '#ffcc00');
+                            
+                            $link_prov = $codprov ? $codprov : $m['default_prov'];
                         ?>
                             <tr>
+                            <tr>
                                 <td style="font-weight:600; color:var(--primary);"><?php echo htmlspecialchars($m['marca'] ?: 'SIN MARCA'); ?></td>
-                                <td class="text-center"><?php echo number_format($m['items_ok'], 0, ',', '.'); ?></td>
-                                <td class="text-center" style="color:<?php echo $m['items_out'] > 0 ? 'var(--accent-red)' : 'inherit'; ?>">
-                                    <?php echo number_format($m['items_out'], 0, ',', '.'); ?>
+                                <td class="text-center">
+                                    <a href="vista_almacen.php?alerta=all&marca=<?php echo urlencode($m['marca'] ?: ''); ?>&codprov=<?php echo urlencode($link_prov ?: ''); ?>" 
+                                       style="color:var(--primary); text-decoration:none; font-weight:700;">
+                                        <?php echo number_format($m['items_ok'], 0, ',', '.'); ?>
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    <a href="vista_almacen.php?alerta=out&marca=<?php echo urlencode($m['marca'] ?: ''); ?>&codprov=<?php echo urlencode($link_prov ?: ''); ?>" 
+                                       style="color:<?php echo $m['items_out'] > 0 ? 'var(--accent-red)' : 'var(--text-muted)'; ?>; text-decoration:none; font-weight:700;">
+                                        <?php echo number_format($m['items_out'], 0, ',', '.'); ?>
+                                    </a>
                                 </td>
                                 <td class="text-right" style="font-weight:700;">$ <?php echo number_format($m['valor_inv'], 2, ',', '.'); ?></td>
                                 <td class="text-center"><?php echo number_format($m['v_unid'], 0, ',', '.'); ?></td>

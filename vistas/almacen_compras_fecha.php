@@ -12,6 +12,16 @@ require_once('../includes/db.php');
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
     $f_ini = $_GET['f_ini'] ?? date('Y-01-01');
     $f_fin = $_GET['f_fin'] ?? date('Y-m-d');
+    $f_txt = $_GET['f_txt'] ?? '';
+    
+    $where = "WHERE c.recep >= :ini AND c.recep <= :fin";
+    $params = [':ini' => $f_ini, ':fin' => $f_fin];
+    
+    if (!empty($f_txt)) {
+        $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
+        $where .= " AND (c.numero LIKE :txt OR p.nombre LIKE :txt OR c.usuario LIKE :txt)";
+        $params[':txt'] = $txt_search;
+    }
     
     header('Content-Type: application/json');
     try {
@@ -23,11 +33,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
                 SUM(c.ctotald) as monto_total
             FROM scst c
             INNER JOIN sprv p ON c.proveed = p.proveed
-            WHERE c.recep >= :ini AND c.recep <= :fin
+            $where
             GROUP BY p.proveed, p.nombre
             ORDER BY monto_total DESC
         ");
-        $stmt->execute([':ini' => $f_ini, ':fin' => $f_fin]);
+        $stmt->execute($params);
         $proveedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         echo json_encode(['success' => true, 'data' => $proveedores]);
@@ -71,8 +81,9 @@ try {
         $params[':prov'] = $f_prov;
     }
     if (!empty($f_txt)) {
+        $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
         $where .= " AND (c.numero LIKE :txt OR p.nombre LIKE :txt OR c.usuario LIKE :txt)";
-        $params[':txt'] = "%$f_txt%";
+        $params[':txt'] = $txt_search;
     }
 
     // KPIs
@@ -81,7 +92,7 @@ try {
             COUNT(c.numero) as total_documentos,
             SUM(c.ctotal) as monto_total,
             SUM(c.ctotald) as monto_total_d,
-            (SELECT SUM(dc.cantidad) FROM itscst dc INNER JOIN scst c2 ON dc.numero = c2.numero WHERE c2.recep >= :ini AND c2.recep <= :fin " . (!empty($f_prov) ? " AND c2.proveed = :prov " : "") . ") as total_unidades
+            SUM((SELECT SUM(cantidad) FROM itscst WHERE numero = c.numero)) as total_unidades
         FROM scst c
         INNER JOIN sprv p ON c.proveed = p.proveed
         $where

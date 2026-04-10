@@ -35,6 +35,9 @@ if (empty($almacen)) $almacen = '0001';
 $codprov   = $conn->real_escape_string($_GET['codprov'] ?? '');
 $prov_cond = !empty($codprov) ? "AND b.prvreg = '$codprov'" : "";
 
+$marca      = $conn->real_escape_string($_GET['marca'] ?? '');
+$marca_cond = !empty($marca) ? "AND b.marca = '$marca'" : "";
+
 // ─── Búsqueda ────────────────────────────────────────────────────────────────
 $search_cond = !empty($search)
     ? "AND (b.codigo LIKE '%$search%' OR b.descrip LIKE '%$search%')"
@@ -55,12 +58,13 @@ function alertaCond($alerta, $dias_expr) {
         case 'critical': return "$dias_expr < 10";
         case 'low':      return "$dias_expr BETWEEN 10 AND 30";
         case 'ok':       return "$dias_expr > 30";
+        case 'out':      return "i.existen <= 0";
         default:         return "1=1"; // all
     }
 }
 
 // ─── Métricas ─────────────────────────────────────────────────────────────────
-function getCounts($conn, $almacen, $dias_expr, $prov_cond) {
+function getCounts($conn, $almacen, $dias_expr, $prov_cond, $marca_cond = "") {
     $counts = ['critical' => 0, 'low' => 0, 'ok' => 0, 'totalH1' => 0, 'valorUSD' => 0];
 
     // Total de productos con stock en el almacén
@@ -70,7 +74,7 @@ function getCounts($conn, $almacen, $dias_expr, $prov_cond) {
         JOIN itsinv i ON b.codigo = i.codigo
         WHERE i.alma = '$almacen'
           AND i.existen >= 1
-          $prov_cond
+          $prov_cond $marca_cond
     ");
     if ($res) $counts['totalH1'] = (int)$res->fetch_assoc()['total'];
 
@@ -82,7 +86,7 @@ function getCounts($conn, $almacen, $dias_expr, $prov_cond) {
         WHERE i.alma = '$almacen'
           AND i.existen >= 1
           AND $dias_expr < 10
-          $prov_cond
+          $prov_cond $marca_cond
     ");
     if ($res) $counts['critical'] = (int)$res->fetch_assoc()['total'];
 
@@ -94,7 +98,7 @@ function getCounts($conn, $almacen, $dias_expr, $prov_cond) {
         WHERE i.alma = '$almacen'
           AND i.existen > 0
           AND $dias_expr BETWEEN 10 AND 30
-          $prov_cond
+          $prov_cond $marca_cond
     ");
     if ($res) $counts['low'] = (int)$res->fetch_assoc()['total'];
 
@@ -106,16 +110,27 @@ function getCounts($conn, $almacen, $dias_expr, $prov_cond) {
         WHERE i.alma = '$almacen'
           AND i.existen > 0
           AND $dias_expr > 30
-          $prov_cond
+          $prov_cond $marca_cond
     ");
     if ($res) $counts['ok'] = (int)$res->fetch_assoc()['total'];
+
+    // SIN STOCK (AGOTADOS): existencia <= 0
+    $res = $conn->query("
+        SELECT COUNT(*) as total
+        FROM sinv b
+        JOIN itsinv i ON b.codigo = i.codigo
+        WHERE i.alma = '$almacen'
+          AND i.existen <= 0
+          $prov_cond $marca_cond
+    ");
+    if ($res) $counts['out'] = (int)$res->fetch_assoc()['total'];
 
     // VALOR USD total del almacén
     $res = $conn->query("
         SELECT SUM(i.existen * b.pondd) as total
         FROM sinv b
         JOIN itsinv i ON b.codigo = i.codigo
-        WHERE i.alma = '$almacen' AND i.existen > 0 $prov_cond
+        WHERE i.alma = '$almacen' AND i.existen > 0 $prov_cond $marca_cond
     ");
     if ($res) $counts['valorUSD'] = (float)$res->fetch_assoc()['total'];
 
@@ -124,7 +139,7 @@ function getCounts($conn, $almacen, $dias_expr, $prov_cond) {
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 try {
-    $metrics = getCounts($conn, $almacen, $dias_expr, $prov_cond);
+    $metrics = getCounts($conn, $almacen, $dias_expr, $prov_cond, $marca_cond);
 
     // ── ALERTAS DE STOCK ──────────────────────────────────────────────────────
     if ($action === 'alertas' || $action === 'alerts') {
@@ -134,12 +149,15 @@ try {
 
         $alerta_cond = alertaCond($alerta, $dias_expr);
 
+        $exist_filter = ($alerta === 'out') ? "i.existen <= 0" : "i.existen >= 1";
+        
         $where = "
             WHERE i.alma = '$almacen'
-              AND i.existen >= 1
+              AND $exist_filter
               AND $alerta_cond
               $search_cond
               $prov_cond
+              $marca_cond
         ";
 
         // Total para paginación
@@ -152,7 +170,6 @@ try {
         if (!$total_res) throw new Exception("Count error: " . $conn->error);
         $total = (int)$total_res->fetch_assoc()['total'];
 
-        // Datos paginados
         $sql = "
             SELECT
                 b.codigo,
@@ -160,10 +177,12 @@ try {
                 i.existen,
                 b.exmin  AS min,
                 b.exmax  AS max,
+                p.nombre AS proveedor,
                 $vdp_expr AS ventau,
                 $dias_expr AS diasinv
             FROM sinv b
             JOIN itsinv i ON b.codigo = i.codigo
+            LEFT JOIN sprv p ON b.prvreg = p.proveed
             $where
             ORDER BY $order_by
             LIMIT $limit OFFSET $offset
@@ -221,6 +240,7 @@ try {
                 b.grupo,
                 b.codigo,
                 b.descrip,
+                p.nombre AS proveedor,
                 SUM(a.cana) AS ventau,
                 i.existen,
                 (i.existen / (SUM(a.cana) / 30 + 0.0001)) AS diasinv,
@@ -228,8 +248,9 @@ try {
             FROM sitems a
             JOIN sinv b ON a.codigoa = b.codigo
             JOIN itsinv i ON b.codigo = i.codigo
+            LEFT JOIN sprv p ON b.prvreg = p.proveed
             $where
-            GROUP BY b.codigo, b.grupo, b.descrip, i.existen, b.pfecha1
+            GROUP BY b.codigo, b.grupo, b.descrip, i.existen, b.pfecha1, p.nombre
             ORDER BY $order_by
             LIMIT $limit OFFSET $offset
         ";

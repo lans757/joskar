@@ -13,6 +13,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
     $f_ini = $_GET['f_ini'] ?? date('Y-01-01');
     $f_fin = $_GET['f_fin'] ?? date('Y-m-d');
     
+    $where = "WHERE c.recep >= :ini AND c.recep <= :fin";
+    $params = [':ini' => $f_ini, ':fin' => $f_fin];
+    
+    $f_txt = $_GET['f_txt'] ?? '';
+    if (!empty($f_txt)) {
+        $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
+        $where .= " AND (dc.descrip LIKE :txt OR dc.codigo LIKE :txt OR p.nombre LIKE :txt)";
+        $params[':txt'] = $txt_search;
+    }
+    
     header('Content-Type: application/json');
     try {
         $stmt = $pdo->prepare("
@@ -25,11 +35,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
             FROM itscst dc
             INNER JOIN scst c ON dc.numero = c.numero
             INNER JOIN sprv p ON c.proveed = p.proveed
-            WHERE c.recep >= :ini AND c.recep <= :fin
+            $where
             GROUP BY p.proveed, p.nombre
             ORDER BY monto_total DESC
         ");
-        $stmt->execute([':ini' => $f_ini, ':fin' => $f_fin]);
+        $stmt->execute($params);
         $proveedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         echo json_encode([
@@ -50,6 +60,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'filtrar') {
     $codprov = $_GET['codprov'] ?? '';
     $f_ini   = $_GET['f_ini']   ?? date('Y-01-01');
     $f_fin   = $_GET['f_fin']   ?? date('Y-m-d');
+    $f_txt = $_GET['f_txt'] ?? '';
 
     header('Content-Type: application/json');
     try {
@@ -59,6 +70,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'filtrar') {
         if (!empty($codprov)) {
             $where .= " AND c.proveed = :codprov ";
             $params[':codprov'] = $codprov;
+        }
+        
+        if (!empty($f_txt)) {
+            $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
+            $where .= " AND (dc.descrip LIKE :txt OR dc.codigo LIKE :txt OR p.nombre LIKE :txt)";
+            $params[':txt'] = $txt_search;
         }
 
         $stmt = $pdo->prepare("
@@ -138,8 +155,9 @@ try {
         $params[':prov'] = $f_prov;
     }
     if (!empty($f_txt)) {
+        $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
         $where .= " AND (dc.descrip LIKE :txt OR dc.codigo LIKE :txt OR p.nombre LIKE :txt)";
-        $params[':txt'] = "%$f_txt%";
+        $params[':txt'] = $txt_search;
     }
 
     // KPIs
@@ -210,6 +228,7 @@ try {
         SELECT COUNT(DISTINCT dc.codigo) as total
         FROM itscst dc
         INNER JOIN scst c ON dc.numero = c.numero
+        INNER JOIN sprv p ON c.proveed = p.proveed
         $where
     ");
     $stmt_count->execute($params);

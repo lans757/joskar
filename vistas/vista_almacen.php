@@ -29,6 +29,9 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
                 <i class="fas fa-trophy"></i>
                 <span>Top Vendidos</span>
             </a>
+            <a href="almacen_kpis.php" class="nav-item">
+                <i class="fas fa-chart-line"></i> <span>Indicadores KPI</span>
+            </a>
         </nav>
 
 
@@ -97,6 +100,7 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
                         <option value="critical">ESTADO CRÍTICO</option>
                         <option value="low">BAJO MÍNIMO</option>
                         <option value="ok">ESTADO ÓPTIMO</option>
+                        <option value="out">SIN STOCK (AGOTADOS)</option>
                     </select>
                 </div>
 
@@ -104,8 +108,10 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
                     <label>Proveedor</label>
                     <select id="filter-prov" style="min-width: 180px;">
                         <option value="">TODOS LOS PROVEEDORES</option>
-                        <?php foreach($proveedores as $p): ?>
-                            <option value="<?php echo $p['proveed']; ?>"><?php echo htmlspecialchars($p['nombre']); ?></option>
+                        <?php 
+                        $get_codprov = $_GET['codprov'] ?? '';
+                        foreach($proveedores as $p): ?>
+                            <option value="<?php echo $p['proveed']; ?>" <?php echo $get_codprov === $p['proveed'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($p['nombre']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -151,6 +157,9 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
                             <th data-sort="descrip" data-type="text">
                                 PRODUCTO <span class="sort-icon"><i class="fas fa-sort"></i></span>
                             </th>
+                            <th data-sort="proveedor" data-type="text">
+                                PROVEEDOR <span class="sort-icon"><i class="fas fa-sort"></i></span>
+                            </th>
                             <th data-sort="existen" data-type="number" class="text-right">
                                 EXISTENCIA <span class="sort-icon"><i class="fas fa-sort"></i></span>
                             </th>
@@ -168,7 +177,7 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="7" class="text-center" style="padding:50px;color:var(--text-muted);">
+                            <td colspan="8" class="text-center" style="padding:50px;color:var(--text-muted);">
                                 <i class="fas fa-spinner fa-spin" style="font-size:1.8rem;"></i><br><br>
                                 Cargando datos...
                             </td>
@@ -191,6 +200,9 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
                             <th data-sort="descrip" data-type="text">
                                 DESCRIPCIÓN <span class="sort-icon"><i class="fas fa-sort"></i></span>
                             </th>
+                            <th data-sort="proveedor" data-type="text">
+                                PROVEEDOR <span class="sort-icon"><i class="fas fa-sort"></i></span>
+                            </th>
                             <th data-sort="ventau" data-type="number" class="text-right">
                                 VENTAS (30D) <span class="sort-icon"><i class="fas fa-sort"></i></span>
                             </th>
@@ -204,7 +216,7 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="6" class="text-center" style="padding:50px;color:var(--text-muted);">
+                            <td colspan="7" class="text-center" style="padding:50px;color:var(--text-muted);">
                                 <i class="fas fa-spinner fa-spin" style="font-size:1.8rem;"></i><br><br>
                                 Cargando datos...
                             </td>
@@ -236,29 +248,6 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
 </main>
 
 <?php
-$extraScripts = '
-<script>
-function refreshData() {
-    const almacen = document.getElementById("filter-almacen").value;
-    const alerta = document.getElementById("filter-alerta").value;
-    const search = document.getElementById("filter-search").value;
-    const codprov = document.getElementById("filter-prov").value;
-    
-    fetch(`../api.php?action=alertas&almacen=${almacen}&alerta=${alerta}&search=${search}&codprov=${codprov}`)
-        .then(r => r.json())
-        .then(res => {
-            const m = res.metrics;
-            document.getElementById("total-inventory-count").innerText = m.totalH1.toLocaleString("es-VE");
-            document.getElementById("count-critical").innerText = m.critical.toLocaleString("es-VE");
-            document.getElementById("count-low").innerText = m.low.toLocaleString("es-VE");
-            document.getElementById("count-ok").innerText = m.ok.toLocaleString("es-VE");
-            document.getElementById("val-usd").innerText = "$ " + m.valorUSD.toLocaleString("es-VE", {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            
-            if(window.renderTable) window.renderTable(res.data);
-        });
-}
-document.addEventListener("DOMContentLoaded", refreshData);
-</script>
-<script src="../dashboard.js"></script>';
+$extraScripts = "<script src='../dashboard.js'></script>";
 include('../includes/footer.php');
 ?>
