@@ -17,10 +17,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
     $where = "WHERE c.recep >= :ini AND c.recep <= :fin";
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
     
-    if (!empty($f_txt)) {
+    if (!empty($f_txt) && strlen(trim($f_txt)) >= 2) {
         $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
         $where .= " AND (c.numero LIKE :txt OR p.nombre LIKE :txt OR c.usuario LIKE :txt)";
         $params[':txt'] = $txt_search;
+    } else {
+        $f_txt = '';
     }
     
     header('Content-Type: application/json');
@@ -80,10 +82,12 @@ try {
         $where .= " AND c.proveed = :prov";
         $params[':prov'] = $f_prov;
     }
-    if (!empty($f_txt)) {
+    if (!empty($f_txt) && strlen(trim($f_txt)) >= 2) {
         $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
         $where .= " AND (c.numero LIKE :txt OR p.nombre LIKE :txt OR c.usuario LIKE :txt)";
         $params[':txt'] = $txt_search;
+    } else {
+        $f_txt = '';
     }
 
     // KPIs
@@ -224,11 +228,16 @@ function formatDL($val) { return '$ ' . number_format($val, 2, ',', '.'); }
             <div class="filter-group grow">
                 <label>Búsqueda Rápida</label>
                 <div style="display:flex; gap:10px;">
-                    <input type="text" name="f_txt" value="<?php echo htmlspecialchars($f_txt); ?>" placeholder="Número, Proveedor o Usuario...">
+                    <input type="text" name="f_txt" id="search-input" value="<?php echo htmlspecialchars($f_txt); ?>" placeholder="Número, Proveedor o Usuario...">
                     <button type="submit" class="btn-neon btn-cyan"><i class="fas fa-search"></i></button>
                 </div>
             </div>
         </form>
+        <div id="search-alert" class="search-alert" style="display: none;">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="search-alert-msg"></span>
+            <button onclick="clearSearch()"><i class="fas fa-times"></i></button>
+        </div>
     </div>
 
     <!-- GRÁFICO Y RESUMEN -->
@@ -406,6 +415,61 @@ function exportXls(id, name) {
 }
 
 document.addEventListener('DOMContentLoaded', loadData);
+
+// Alerta de búsqueda
+function showSearchAlert(msg) {
+    const alert = document.getElementById('search-alert');
+    const alertMsg = document.getElementById('search-alert-msg');
+    alertMsg.textContent = msg;
+    alert.style.display = 'flex';
+}
+
+function clearSearch() {
+    const input = document.getElementById('search-input');
+    input.value = '';
+    window.location.href = window.location.pathname;
+}
+
+// Verificar si hay búsqueda sin resultados
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchVal = urlParams.get('f_txt');
+        if (searchVal && searchVal.length >= 2) {
+            const noDataRow = document.querySelector('td[colspan]');
+            if (noDataRow && (noDataRow.textContent.includes('No hay registros') || noDataRow.textContent.includes('No se encontraron'))) {
+                showSearchAlert('No se encontró ningún registro con: "' + searchVal + '"');
+            }
+        }
+    }, 100);
+});
 </script>
+
+<style>
+.search-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    margin-top: 15px;
+    background: rgba(255, 87, 34, 0.15);
+    border: 1px solid var(--accent-red);
+    border-radius: 6px;
+    color: var(--accent-red);
+    font-weight: 600;
+    animation: slideDown 0.3s ease;
+}
+.search-alert button {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--accent-red);
+    cursor: pointer;
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 
 <?php include('../includes/footer.php'); ?>

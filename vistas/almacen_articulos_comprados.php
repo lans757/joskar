@@ -17,10 +17,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
     
     $f_txt = $_GET['f_txt'] ?? '';
-    if (!empty($f_txt)) {
+    if (!empty($f_txt) && strlen(trim($f_txt)) >= 2) {
         $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
         $where .= " AND (dc.descrip LIKE :txt OR dc.codigo LIKE :txt OR p.nombre LIKE :txt)";
         $params[':txt'] = $txt_search;
+    } else {
+        $f_txt = '';
     }
     
     header('Content-Type: application/json');
@@ -72,10 +74,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'filtrar') {
             $params[':codprov'] = $codprov;
         }
         
-        if (!empty($f_txt)) {
+        if (!empty($f_txt) && strlen(trim($f_txt)) >= 2) {
             $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
             $where .= " AND (dc.descrip LIKE :txt OR dc.codigo LIKE :txt OR p.nombre LIKE :txt)";
             $params[':txt'] = $txt_search;
+        } else {
+            $f_txt = '';
         }
 
         $stmt = $pdo->prepare("
@@ -154,10 +158,12 @@ try {
         $where .= " AND c.proveed = :prov";
         $params[':prov'] = $f_prov;
     }
-    if (!empty($f_txt)) {
+    if (!empty($f_txt) && strlen(trim($f_txt)) >= 2) {
         $txt_search = "%" . str_replace(" ", "%", trim($f_txt)) . "%";
         $where .= " AND (dc.descrip LIKE :txt OR dc.codigo LIKE :txt OR p.nombre LIKE :txt)";
         $params[':txt'] = $txt_search;
+    } else {
+        $f_txt = '';
     }
 
     // KPIs
@@ -170,6 +176,7 @@ try {
             COUNT(DISTINCT c.numero) as total_compras
         FROM itscst dc
         INNER JOIN scst c ON dc.numero = c.numero
+        INNER JOIN sprv p ON c.proveed = p.proveed
         $where
     ");
     $stmt_kpi->execute($params);
@@ -349,7 +356,7 @@ if (!function_exists('formatUSD')) {
             <div class="filter-group grow">
                 <label>Buscar Artículo / Código</label>
                 <div class="sw" style="display:flex; gap:10px;">
-                    <input type="text" name="f_txt" value="<?php echo htmlspecialchars($f_txt); ?>" 
+                    <input type="text" name="f_txt" id="search-input" value="<?php echo htmlspecialchars($f_txt); ?>" 
                            placeholder="Código o descripción..." style="flex:1;">
                     <button type="submit" class="btn-neon btn-cyan" style="height:48px;">
                         <i class="fas fa-sync-alt"></i> ACTUALIZAR
@@ -357,6 +364,12 @@ if (!function_exists('formatUSD')) {
                 </div>
             </div>
         </form>
+        <!-- Alerta de búsqueda -->
+        <div id="search-alert" class="search-alert" style="display: none;">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="search-alert-msg"></span>
+            <button onclick="clearSearch()"><i class="fas fa-times"></i></button>
+        </div>
     </div>
 
     <!-- TABS: Gráfico | Tabla -->
@@ -794,7 +807,70 @@ function exportXls(id, name) {
 
 // Inicializar gráfico al cargar la página
 document.addEventListener('DOMContentLoaded', loadChartData);
+
+// Alerta de búsqueda
+function showSearchAlert(msg) {
+    const alert = document.getElementById('search-alert');
+    const alertMsg = document.getElementById('search-alert-msg');
+    alertMsg.textContent = msg;
+    alert.style.display = 'flex';
+}
+
+function clearSearch() {
+    const input = document.getElementById('search-input');
+    input.value = '';
+    window.location.href = window.location.pathname;
+}
+
+// Verificar si hay búsqueda sin resultados al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchVal = urlParams.get('f_txt');
+    if (searchVal && searchVal.length >= 2) {
+        // Verificar si hay datos en la tabla
+        const tableBody = document.querySelector('#table-articulos tbody');
+        const noDataRow = tableBody.querySelector('td[colspan="11"]');
+        if (noDataRow && noDataRow.textContent.includes('No se encontraron')) {
+            showSearchAlert('No se encontró ningún artículo con: "' + searchVal + '"');
+        }
+    }
+});
 </script>
+
+<style>
+.search-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    margin-top: 15px;
+    background: rgba(255, 87, 34, 0.15);
+    border: 1px solid var(--accent-red);
+    border-radius: 6px;
+    color: var(--accent-red);
+    font-weight: 600;
+    animation: slideDown 0.3s ease;
+}
+.search-alert i:first-child {
+    font-size: 1.2rem;
+}
+.search-alert button {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--accent-red);
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.7;
+}
+.search-alert button:hover {
+    opacity: 1;
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 
 <?php 
 include('../includes/footer.php'); 

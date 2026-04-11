@@ -81,7 +81,7 @@ $marcas_val_labels = array_map(function($m) use ($total_marcas_val) {
     return $m['marca'] . " ($p%)";
 }, $marcas_val);
 
-// 5. Rotación de Marcas (Top 5 por Ventas del Periodo)
+// 5. Rotación de Marcas (Top 30 por Ventas del Periodo)
 $stmt_marcas_rot = $pdo->prepare("
     SELECT v.marca, SUM(i.cana) as unidades
     FROM itpfac i
@@ -89,7 +89,7 @@ $stmt_marcas_rot = $pdo->prepare("
     WHERE i.fecha BETWEEN ? AND ? $prov_cond_v
     GROUP BY v.marca
     ORDER BY unidades DESC
-    LIMIT 5
+    LIMIT 30
 ");
 $stmt_marcas_rot->execute([$f_ini, $f_fin]);
 $marcas_rot = $stmt_marcas_rot->fetchAll(PDO::FETCH_ASSOC);
@@ -270,9 +270,9 @@ include('../includes/sidebar.php');
             <!-- Rotación Mensual -->
             <div class="card chart-card" style="grid-column: span 2;">
                 <div class="t-header">
-                    <h2><i class="fas fa-sync-alt"></i> Rotación por Marcas (Unidades Periodo)</h2>
+                    <h2><i class="fas fa-sync-alt"></i> Rotación por Marcas (Top 30 - Unidades Periodo)</h2>
                 </div>
-                <div class="chart-container" style="height:400px;">
+                <div class="chart-container" style="height:800px;">
                     <canvas id="chartRotation"></canvas>
                 </div>
             </div>
