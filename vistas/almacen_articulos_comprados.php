@@ -837,40 +837,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-.search-alert {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    margin-top: 15px;
-    background: rgba(255, 87, 34, 0.15);
-    border: 1px solid var(--accent-red);
-    border-radius: 6px;
-    color: var(--accent-red);
-    font-weight: 600;
-    animation: slideDown 0.3s ease;
-}
-.search-alert i:first-child {
-    font-size: 1.2rem;
-}
-.search-alert button {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: var(--accent-red);
-    cursor: pointer;
-    font-size: 1rem;
-    opacity: 0.7;
-}
-.search-alert button:hover {
-    opacity: 1;
-}
-@keyframes slideDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-</style>
+
 
 <?php 
 include('../includes/footer.php'); 

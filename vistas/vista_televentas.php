@@ -273,7 +273,7 @@ function renderEstatusPed(string $e): string {
         'C' => "<span class='badge badge-ok'><i class='fas fa-check-circle'></i> CERRADO</span>",
         'P' => "<span class='badge badge-low'><i class='fas fa-clock'></i> PENDIENTE</span>",
         'X' => "<span class='badge badge-critical'><i class='fas fa-times-circle'></i> ANULADO</span>",
-        default => "<span class='badge' style='background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid var(--border);'>$e</span>",
+        default => "<span class='badge badge badge-neutral'>$e</span>",
     };
 }
 
@@ -347,191 +347,29 @@ $grafico_usr = prepararDatosGrafico(
      ESTILOS ESPECÍFICOS DE TELEVENTAS (modal + overrides locales)
      Los estilos globales se heredan de style.css vía header.php
      ============================================================ -->
-<style>
-/* ---------- Modal (mismo patrón que cobranzas) ---------- */
-.modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.72);
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-}
-.modal-overlay.open { display: flex; }
-.modal-box {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    width: 100%;
-    max-width: 1100px;
-    max-height: 90vh;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    box-shadow: var(--shadow);
-    animation: mIn 0.3s cubic-bezier(0.4,0,0.2,1);
-}
-@keyframes mIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
-.modal-hd {
-    padding: 24px 30px;
-    border-bottom: 1px solid var(--border-light);
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    background: rgba(255,255,255,0.02);
-}
-.modal-hd h3 { font-size:1.25rem; font-weight:800; margin:0; color:var(--primary); }
-.modal-hd .mref { font-size:0.85rem; color:var(--text-muted); margin-top:5px; font-weight:600; }
-.modal-close {
-    background: rgba(255,255,255,0.05);
-    border: none;
-    color: var(--text-main);
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 1.2rem;
-    display: flex; align-items: center; justify-content: center;
-    transition: var(--transition);
-}
-.modal-close:hover { background: var(--accent-red); color:#fff; }
-.modal-body { overflow-y:auto; padding:25px 30px; flex:1; }
-.modal-info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
-    gap: 15px;
-    margin-bottom: 25px;
-}
-.mic {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    padding: 12px 18px;
-}
-.mic .lbl { font-size:0.7rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px; }
-.mic .val { font-size:1.1rem; font-weight:700; color:var(--text-main); font-family:'Outfit',sans-serif; }
-.mic .val.gr { color:var(--accent-green); }
-.mic .val.bl { color:var(--primary); }
-.modal-sec-ttl {
-    font-size:0.9rem; font-weight:800; text-transform:uppercase; color:var(--primary);
-    margin:30px 0 15px;
-    display:flex; align-items:center; gap:10px;
-    padding-bottom:10px; border-bottom:1px solid var(--border-light);
-}
-.modal-ft { border-top:1px solid var(--border-light); padding:15px 30px; display:flex; justify-content:flex-end; background:rgba(255,255,255,0.01); }
-.modal-no-ped { text-align:center; padding:40px; opacity:0.5; font-size:0.95rem; }
-.btn-cerrar {
-    background: var(--bg-input); color:var(--text-main);
-    border:1px solid var(--border); padding:10px 24px;
-    border-radius:var(--radius-sm); font-weight:700; cursor:pointer; transition:var(--transition);
-}
-.btn-cerrar:hover { background:var(--border); }
 
-/* ---------- Gráfico de torta (contenedor) ---------- */
-.chart-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 30px;
-    flex-wrap: wrap;
-    padding: 10px 5px 5px;
-}
-.chart-canvas-wrap {
-    flex: 0 0 auto;
-    width: 300px;
-    height: 300px;
-    position: relative;
-}
-/* Leyenda personalizada derecha del gráfico */
-.chart-legend {
-    flex: 1 1 200px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding-right: 5px;
-}
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 0.82rem;
-    cursor: pointer;
-    padding: 6px 10px;
-    border-radius: var(--radius-sm);
-    transition: background 0.2s;
-}
-.legend-item:hover { background: rgba(255,255,255,0.05); }
-.legend-dot {
-    width: 12px; height: 12px; border-radius: 50%; flex-shrink:0;
-}
-.legend-name { flex:1; color:var(--text-main); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.legend-val  { color:var(--accent-green); font-weight:700; white-space:nowrap; }
-
-/* Botón "Ver pedidos" dentro de cada ítem de leyenda de la dona de usuarios */
-.btn-ver-usr {
-    background: rgba(0,180,255,0.1);
-    border: 1px solid rgba(0,180,255,0.25);
-    color: var(--primary);
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 0.65rem;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    margin-left: 6px;
-    transition: var(--transition);
-}
-.btn-ver-usr:hover { background: rgba(0,180,255,0.3); }
-
-/* ---------- Tabla y utilidades ---------- */
-th.c, td.c { text-align:center !important; }
-th.r, td.r { text-align:right  !important; }
-.click-tip { font-size:0.85rem; color:var(--text-muted); padding:10px 0; display:flex; align-items:center; gap:8px; font-weight:500; }
-tbody tr.clickable:hover { cursor:pointer; background:rgba(0,180,255,0.1) !important; }
-.table-container { border-radius:0 0 var(--radius-lg) var(--radius-lg); overflow-x:auto; }
-#table-ranking thead th,
-#table-detalle thead th { position:sticky; top:0; z-index:10; background:var(--bg-card); box-shadow:inset 0 -2px 0 var(--border); }
-.rank-num { display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background:rgba(255,255,255,0.07); font-weight:800; font-size:0.78rem; color:var(--text-muted); }
-.rank-num.gold   { background:rgba(255,193,7,0.2);  color:#ffc107; }
-.rank-num.silver { background:rgba(192,192,192,0.2); color:#c0c0c0; }
-.rank-num.bronze { background:rgba(205,127,50,0.2);  color:#cd7f32; }
-
-/* Barra de progreso en tabla ranking */
-.progress-bar-wrap { position:relative; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; height:6px; min-width:80px; }
-.progress-bar-fill { height:100%; border-radius:4px; transition:width 0.6s ease; }
-
-/* ---------- Tabs selector de dona ---------- */
-.btn-dona-tab {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    padding: 7px 16px;
-    border-radius: var(--radius-sm);
-    font-size: 0.82rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: var(--transition);
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-}
-.btn-dona-tab:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
-.btn-dona-tab.active {
-    background: rgba(0,180,255,0.15);
-    border-color: rgba(0,180,255,0.4);
-    color: var(--primary);
-}
-</style>
 
 <!-- ============================================================
      CONTENIDO PRINCIPAL
      ============================================================ -->
 <main class="main-content">
 <div class="content-wrapper">
+
+    <!-- Navegación de Módulo -->
+    <nav class="module-nav">
+        <a href="almacen_articulos_comprados.php" class="nav-item">
+            <i class="fas fa-list"></i>
+            <span>Artículos Comprados</span>
+        </a>
+        <a href="almacen_top_vendidos.php" class="nav-item">
+            <i class="fas fa-trophy"></i>
+            <span>Top Vendidos</span>
+        </a>
+        <a href="vista_compras.php" class="nav-item">
+            <i class="fas fa-shopping-cart"></i>
+            <span>KPIs</span>
+        </a>
+    </nav>
 
     <!-- CABECERA DE PÁGINA -->
     <div class="page-title">
@@ -541,7 +379,7 @@ tbody tr.clickable:hover { cursor:pointer; background:rgba(0,180,255,0.1) !impor
            &mdash;
            <strong><?php echo date('d/m/Y', strtotime($f_fin)); ?></strong>
            <?php if (!empty($f_usuario)): ?>
-               &bull; <span style="background:rgba(0,180,255,0.15); color:var(--primary); border:1px solid rgba(0,180,255,0.3); border-radius:20px; padding:2px 10px; font-size:0.82rem; font-weight:700;">
+               &bull; <span class="user-filter-badge">
                    <i class="fas fa-user-shield"></i> Usuario: <?php echo htmlspecialchars($f_usuario); ?>
                </span>
            <?php endif; ?>
@@ -590,339 +428,183 @@ tbody tr.clickable:hover { cursor:pointer; background:rgba(0,180,255,0.1) !impor
     </div>
 
     <!-- ====================================================
-         FILTROS
+         CABECERA + FILTRO COMPACTO
          ==================================================== -->
-    <div class="card filters-card">
-        <div class="filters-header">
-            <i class="fas fa-filter"></i>
-            <h2>Filtros de búsqueda</h2>
+    <div class="tv-header-row">
+        <div class="tv-title-block">
+            <div class="tv-module-tag"><i class="fas fa-headset"></i> Televentas</div>
+            <h1>Monitor de Ventas</h1>
+            <p class="tv-period">
+                <i class="fas fa-calendar-alt"></i>
+                <?php echo date('d/m/Y', strtotime($f_ini)); ?> &mdash; <?php echo date('d/m/Y', strtotime($f_fin)); ?>
+                <?php if (!empty($f_usuario)): ?>
+                    <span class="user-filter-badge"><i class="fas fa-user-shield"></i> <?php echo htmlspecialchars($f_usuario); ?></span>
+                <?php endif; ?>
+            </p>
         </div>
-        <form method="GET" class="filters-row">
-            <div class="filter-group">
-                <label>Fecha Desde</label>
+        <form method="GET" class="tv-filter-compact">
+            <div class="tv-input-wrap">
+                <label>Desde</label>
                 <input type="date" name="f_ini" value="<?php echo $f_ini; ?>">
             </div>
-            <div class="filter-group">
-                <label>Fecha Hasta</label>
+            <div class="tv-input-wrap">
+                <label>Hasta</label>
                 <input type="date" name="f_fin" value="<?php echo $f_fin; ?>">
             </div>
-            <!-- *** FILTRO POR USUARIO QUE CARGÓ EL PEDIDO ***
-                 Puebla el <select> con los valores distintos de sfac.usuario.
-                 Al seleccionar uno, TODAS las queries (KPIs, ranking, gráfico,
-                 detalle paginado) se restringen a ese operador.
-                 Seleccionar "TODOS" limpia el filtro y restaura la vista global. -->
-            <div class="filter-group">
-                <label><i class="fas fa-user-shield" style="margin-right:5px;"></i>Usuario / Operador</label>
+            <div class="tv-input-wrap">
+                <label><i class="fas fa-user-shield icon-mr"></i>Operador</label>
                 <select name="f_usuario">
-                    <option value="">— TODOS LOS USUARIOS —</option>
+                    <option value="">— Todos —</option>
                     <?php foreach ($lista_usuarios as $usr): ?>
-                    <option value="<?php echo htmlspecialchars($usr); ?>"
-                            <?php echo ($f_usuario === $usr) ? 'selected' : ''; ?>>
+                    <option value="<?php echo htmlspecialchars($usr); ?>" <?php echo ($f_usuario === $usr) ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($usr); ?>
                     </option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="filter-group grow">
-                <label>Buscar Vendedor / Cliente / N° Pedido</label>
-                <div class="sw">
-                    <input type="text" name="f_txt"
-                           value="<?php echo htmlspecialchars($f_txt); ?>"
-                           placeholder="Ej: María González, FC00012345…">
-                    <button type="submit" class="btn-neon btn-cyan">
-                        <i class="fas fa-sync-alt"></i> ACTUALIZAR
-                    </button>
-                </div>
-            </div>
+            <button type="submit" class="tv-btn-apply">
+                <i class="fas fa-sync-alt"></i> Aplicar
+            </button>
         </form>
     </div>
 
     <!-- ====================================================
-         SECCIÓN GRÁFICA + RANKING
+         HERO KPI — VENTAS USD (elemento visual dominante)
          ==================================================== -->
-    <div class="card table-card" style="margin-top:25px;">
-        <div class="t-header">
-            <h3><i class="fas fa-chart-pie"></i> Participación de Ventas por Vendedor</h3>
-            <button class="btn-neon btn-green" onclick="exportXls('table-ranking','Ranking_Televentas')" style="height:38px; font-size:0.75rem; padding:0 15px;">
-                <i class="fas fa-file-excel"></i> Exportar XLS
-            </button>
+    <div class="tv-hero-kpi">
+        <div class="tv-hero-glow"></div>
+        <div class="tv-hero-icon"><i class="fas fa-dollar-sign"></i></div>
+        <div class="tv-hero-content">
+            <span class="tv-hero-label">Total Ventas del Período</span>
+            <div class="tv-hero-value">
+                $ <?php echo number_format($total_usd, 2, '.', ','); ?>
+                <span class="tv-hero-currency">USD</span>
+            </div>
+            <div class="tv-hero-bs">Bs. <?php echo number_format($total_bs, 2, ',', '.'); ?></div>
         </div>
-
-        <!-- Gráfico de Torta (Chart.js) -->
-        <div style="padding:20px 25px 10px;">
-            <?php if (empty($ranking)): ?>
-                <p style="opacity:0.5; text-align:center; padding:40px 0;">
-                    No hay datos en el rango seleccionado.
-                </p>
-            <?php else: ?>
-
-            <!-- ============================================================
-                 SELECTOR DE MODO DE GRÁFICO
-                 "Por Vendedor" = dona original (DONA_VENDEDORES_v1)
-                 "Por Usuario"  = dona nueva que agrupa por f.usuario
-                 ============================================================ -->
-            <div style="display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;">
-                <button id="btn-dona-vend"
-                        onclick="switchDona('vendedor')"
-                        class="btn-dona-tab active"
-                        title="Participación agrupada por vendedor">
-                    <i class="fas fa-user-tie"></i> Por Vendedor
-                </button>
-                <button id="btn-dona-usr"
-                        onclick="switchDona('usuario')"
-                        class="btn-dona-tab"
-                        title="Participación agrupada por usuario que cargó el pedido">
-                    <i class="fas fa-user-shield"></i> Por Usuario
-                    <?php if (!empty($f_usuario)): ?>
-                        <span style="background:rgba(0,180,255,0.3); border-radius:10px; padding:1px 7px; font-size:0.72rem; margin-left:4px;">
-                            <?php echo htmlspecialchars($f_usuario); ?>
-                        </span>
-                    <?php endif; ?>
-                </button>
+        <div class="tv-hero-trend">
+            <div class="tv-trend-item">
+                <i class="fas fa-clipboard-list"></i>
+                <span class="tv-trend-val"><?php echo number_format($total_pedidos, 0); ?></span>
+                <span class="tv-trend-lbl">Pedidos</span>
             </div>
-
-            <!-- -------------------------------------------------------
-                 DONA_VENDEDORES_v1
-                 Dona original: participación de ventas por vendedor.
-                 Se mantiene intacta para reutilización futura.
-                 Para desactivarla permanentemente: añadir display:none al wrapper
-                 o eliminar el bloque completo.
-                 ------------------------------------------------------- -->
-            <div id="wrap-dona-vendedor" class="chart-wrapper">
-                <div class="chart-canvas-wrap">
-                    <canvas id="pieVentas"></canvas>
-                </div>
-                <div class="chart-legend" id="pieLeyenda"></div>
+            <div class="tv-trend-sep"></div>
+            <div class="tv-trend-item">
+                <i class="fas fa-users"></i>
+                <span class="tv-trend-val"><?php echo $total_vendedores; ?></span>
+                <span class="tv-trend-lbl">Vendedores</span>
             </div>
-
-            <!-- -------------------------------------------------------
-                 DONA_USUARIOS_v1
-                 Dona nueva: participación de ventas agrupada por el campo
-                 f.usuario (operador que registró el pedido en sfac).
-                 Los datos se generan en PHP ($grafico_usr) y se pasan a JS.
-                 Si hay un f_usuario activo, esta dona muestra solo los
-                 vendedores de ese operador (hereda el mismo $where).
-                 ------------------------------------------------------- -->
-            <div id="wrap-dona-usuario" class="chart-wrapper" style="display:none;">
-                <div class="chart-canvas-wrap">
-                    <canvas id="pieUsuarios"></canvas>
-                </div>
-                <div class="chart-legend" id="pieLeyendaUsr"></div>
+            <div class="tv-trend-sep"></div>
+            <div class="tv-trend-item">
+                <i class="fas fa-chart-line"></i>
+                <span class="tv-trend-val">$ <?php echo number_format($prom_usd, 0, '.', ','); ?></span>
+                <span class="tv-trend-lbl">Prom/Vend.</span>
             </div>
-
-            <?php endif; ?>
-        </div>
-
-        <!-- Tabla de Ranking por Vendedor -->
-        <div class="table-container" style="margin-top:10px;">
-            <table id="table-ranking">
-                <thead>
-                    <tr>
-                        <th class="c">#</th>
-                        <th>VENDEDOR</th>
-                        <th class="c">PEDIDOS</th>
-                        <th class="r">TOTAL (BS)</th>
-                        <th class="r">TOTAL (USD)</th>
-                        <th>PARTICIPACIÓN</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if (empty($ranking)): ?>
-                    <tr><td colspan="6" class="text-center" style="padding:48px; opacity:0.5;">Sin registros.</td></tr>
-                <?php else:
-                    // Calcular máximo USD para barra de progreso
-                    $max_usd = max(array_column($ranking, 'total_usd')) ?: 1;
-                    foreach ($ranking as $i => $v):
-                        $pct    = ($total_usd > 0) ? round(($v['total_usd'] / $total_usd) * 100, 1) : 0;
-                        $barPct = ($v['total_usd'] / $max_usd) * 100;
-                        $rank   = $i + 1;
-                        $rankClass = match($rank) { 1 => 'gold', 2 => 'silver', 3 => 'bronze', default => '' };
-                        // Color sincronizado con el gráfico (mismo orden de paleta)
-                        $palette = [
-                            'rgba(0,180,255,0.85)', 'rgba(0,230,118,0.85)',
-                            'rgba(255,193,7,0.85)', 'rgba(255,82,82,0.85)',
-                            'rgba(156,39,176,0.85)', 'rgba(255,152,0,0.85)',
-                            'rgba(0,188,212,0.85)', 'rgba(233,30,99,0.85)',
-                            'rgba(121,85,72,0.85)', 'rgba(96,125,139,0.85)',
-                        ];
-                        $color = $palette[$i % count($palette)];
-                ?>
-                    <tr class="clickable" onclick="abrirModalVendedor(
-                            '<?php echo htmlspecialchars($v['codvend']); ?>',
-                            '<?php echo htmlspecialchars(addslashes($v['nombre_vend'])); ?>'
-                        )">
-                        <td class="c"><span class="rank-num <?php echo $rankClass; ?>"><?php echo $rank; ?></span></td>
-                        <td>
-                            <div style="font-weight:700; color:var(--text-main);"><?php echo htmlspecialchars($v['nombre_vend']); ?></div>
-                            <div style="font-size:0.72rem; color:var(--text-muted);">Cód. <?php echo htmlspecialchars($v['codvend']); ?></div>
-                        </td>
-                        <td class="c"><strong><?php echo $v['pedidos']; ?></strong></td>
-                        <td class="r" style="font-weight:700;">Bs. <?php echo number_format($v['total_bs'], 2, ',', '.'); ?></td>
-                        <td class="r" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($v['total_usd'], 2, '.', ','); ?></td>
-                        <td style="min-width:150px;">
-                            <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); margin-bottom:5px;"><?php echo $pct; ?>%</div>
-                            <div class="progress-bar-wrap">
-                                <div class="progress-bar-fill"
-                                     style="width:<?php echo $barPct; ?>%; background:<?php echo $color; ?>;"></div>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endforeach; endif; ?>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="2" class="text-right" style="opacity:0.7;">
-                            <i class="fas fa-sigma"></i> TOTAL PERIODO (<?php echo count($ranking); ?> vendedores)
-                        </td>
-                        <td class="c" style="font-weight:800;"><?php echo $total_pedidos; ?></td>
-                        <td class="r" style="font-weight:800;">Bs. <?php echo number_format($total_bs, 2, ',', '.'); ?></td>
-                        <td class="r" style="font-weight:800; color:var(--accent-green);">$ <?php echo number_format($total_usd, 2, '.', ','); ?></td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
         </div>
     </div>
 
     <!-- ====================================================
-         DETALLE DE PEDIDOS (Tabla paginada)
+         PANEL DE ANÁLISIS: GRÁFICO + RANKING
          ==================================================== -->
-    <div class="card table-card" style="margin-top:28px;">
-        <div class="t-header">
-            <h3><i class="fas fa-list-ul"></i> Detalle de Pedidos (PFAC)</h3>
-            <div class="rng">
-                Mostrando del <?php echo $offset + 1; ?> al <?php echo min($offset + $limit, $total_rows); ?>
-                de <strong><?php echo $total_rows; ?></strong>
-                <button class="btn-neon btn-green" 
-                        onclick="exportXls('table-detalle','Detalle_Televentas')"
-                        style="margin-left:15px; height:38px; font-size:0.75rem; padding:0 15px;">
-                    <i class="fas fa-file-excel"></i> Exportar XLS
-                </button>
-            </div>
-        </div>
+    <div class="tv-analysis-grid">
 
-        <div class="table-container">
-            <table id="table-detalle">
-                <thead>
-                    <tr>
-                        <th>N° PEDIDO</th>
-                        <th>FECHA</th>
-                        <th>CLIENTE</th>
-                        <th>VENDEDOR</th>
-                        <th>USUARIO</th>
-                        <th class="r">TOTAL (BS)</th>
-                        <th class="r">TOTAL (USD)</th>
-                        <th class="c">TASA</th>
-                        <th class="c">ESTATUS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php if (empty($pedidos)): ?>
-                    <tr>
-                        <td colspan="8" class="text-center" style="padding:48px; opacity:0.5;">
-                            No se encontraron pedidos bajo los filtros actuales.
-                        </td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($pedidos as $r): ?>
-                    <tr class="clickable"
-                        onclick="abrirModalVendedor('<?php echo htmlspecialchars($r['codvend']); ?>',
-                                                    '<?php echo htmlspecialchars(addslashes($r['nombre_vend'])); ?>')">
-                        <td><span class="code-badge"><?php echo htmlspecialchars($r['pedido']); ?></span></td>
-                        <td><?php echo date('d/m/Y', strtotime($r['fecha_ped'])); ?></td>
-                        <td class="product-name">
-                            <div style="font-weight:700; color:var(--text-main);"><?php echo htmlspecialchars($r['cliente']); ?></div>
-                            <div style="font-size:0.72rem; color:var(--text-muted);"><?php echo htmlspecialchars($r['cod_cli']); ?></div>
-                        </td>
-                        <td>
-                            <div style="font-weight:600;"><?php echo htmlspecialchars($r['nombre_vend']); ?></div>
-                            <div style="font-size:0.72rem; color:var(--text-muted);">Cód. <?php echo htmlspecialchars($r['codvend']); ?></div>
-                        </td>
-                        <!-- Celda usuario que cargó el pedido (campo sfac.usuario) -->
-                        <td>
-                            <span class="code-badge" style="background:rgba(0,180,255,0.08); color:var(--primary); border-color:rgba(0,180,255,0.2);">
-                                <i class="fas fa-user-shield" style="font-size:0.65rem; margin-right:3px;"></i> <?php echo htmlspecialchars($r['usuario_cargo'] ?? '—'); ?>
-                            </span>
-                        </td>
-                        <td class="r" style="font-weight:700;">Bs. <?php echo number_format($r['total_bs'], 2, ',', '.'); ?></td>
-                        <td class="r" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($r['total_usd'], 2, '.', ','); ?></td>
-                        <td class="c" style="color:var(--text-muted); font-size:0.82rem;"><?php echo number_format($r['dolar'], 2, ',', '.'); ?></td>
-                        <td class="c"><?php echo renderEstatusPed($r['estatus'] ?? ''); ?></td>
-                    </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-                </tbody>
-                <tfoot>
-                    <?php
-                    $page_bs  = array_sum(array_column($pedidos, 'total_bs'));
-                    $page_usd = array_sum(array_column($pedidos, 'total_usd'));
-                    ?>
-                    <tr>
-                        <td colspan="5" class="text-right" style="opacity:0.7;">
-                            <i class="fas fa-sigma"></i> SUBTOTAL PÁGINA (<?php echo count($pedidos); ?> pedidos)
-                        </td>
-                        <td class="r" style="font-weight:800;">Bs. <?php echo number_format($page_bs, 2, ',', '.'); ?></td>
-                        <td class="r" style="font-weight:800; color:var(--accent-green);">$ <?php echo number_format($page_usd, 2, '.', ','); ?></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-
-        <!-- PAGINACIÓN (mismo patrón que cobranzas) -->
-        <div class="pagination-wrapper">
-            <div class="page-info-bubble">
-                Página <strong><?php echo $page; ?></strong> de <strong><?php echo $total_pages; ?></strong>
-            </div>
-
-            <div class="pager-container">
-                <div class="pager-group">
-                    <?php if ($page > 1): ?>
-                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => 1])); ?>"
-                           class="pager-btn" title="Primero"><i class="fas fa-angles-left"></i></a>
-                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>"
-                           class="pager-btn" title="Anterior"><i class="fas fa-angle-left"></i></a>
-                    <?php else: ?>
-                        <button class="pager-btn disabled"><i class="fas fa-angles-left"></i></button>
-                        <button class="pager-btn disabled"><i class="fas fa-angle-left"></i></button>
-                    <?php endif; ?>
-
-                    <span class="pcur" style="margin:0 15px; font-weight:700; color:var(--primary);"><?php echo $page; ?></span>
-
-                    <?php if ($page < $total_pages): ?>
-                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>"
-                           class="pager-btn" title="Siguiente"><i class="fas fa-angle-right"></i></a>
-                        <a href="?<?php echo http_build_query(array_merge($_GET, ['page' => $total_pages])); ?>"
-                           class="pager-btn" title="Último"><i class="fas fa-angles-right"></i></a>
-                    <?php else: ?>
-                        <button class="pager-btn disabled"><i class="fas fa-angle-right"></i></button>
-                        <button class="pager-btn disabled"><i class="fas fa-angles-right"></i></button>
-                    <?php endif; ?>
+        <!-- Dona de participación -->
+        <div class="card tv-chart-card">
+            <div class="tv-card-hd">
+                <span class="tv-card-title"><i class="fas fa-chart-pie"></i> Participación</span>
+                <div class="tv-dona-tabs">
+                    <button id="btn-dona-vend" onclick="switchDona('vendedor')" class="btn-dona-tab active">
+                        <i class="fas fa-user-tie"></i> Vendedor
+                    </button>
+                    <button id="btn-dona-usr" onclick="switchDona('usuario')" class="btn-dona-tab">
+                        <i class="fas fa-user-shield"></i> Usuario
+                    </button>
                 </div>
             </div>
-
-            <form method="GET" class="page-input-group">
-                <?php foreach ($_GET as $k => $v) if ($k !== 'page') echo '<input type="hidden" name="' . htmlspecialchars($k) . '" value="' . htmlspecialchars($v) . '">'; ?>
-                <span style="opacity:0.6;">Ir a</span>
-                <input type="number" name="page" class="page-input"
-                       min="1" max="<?php echo $total_pages; ?>"
-                       value="<?php echo $page; ?>">
-                <button type="submit" class="pager-btn" style="background:rgba(255,255,255,0.05);">
-                    <i class="fas fa-arrow-right"></i>
-                </button>
-            </form>
+            <?php if (empty($ranking)): ?>
+                <p class="empty-data-msg">No hay datos en el rango seleccionado.</p>
+            <?php else: ?>
+            <div id="wrap-dona-vendedor" class="chart-wrapper">
+                <div class="chart-canvas-wrap"><canvas id="pieVentas"></canvas></div>
+                <div class="chart-legend" id="pieLeyenda"></div>
+            </div>
+            <div id="wrap-dona-usuario" class="chart-wrapper chart-hidden">
+                <div class="chart-canvas-wrap"><canvas id="pieUsuarios"></canvas></div>
+                <div class="chart-legend" id="pieLeyendaUsr"></div>
+            </div>
+            <?php endif; ?>
         </div>
-    </div>
 
-    <!-- Tip inferior -->
-    <div class="click-tip">
-        <i class="fas fa-info-circle"></i>
-        Tip: Haz clic en un vendedor o pedido para ver el desglose completo de sus pedidos del período.
-    </div>
+        <!-- Ranking de vendedores -->
+        <div class="card tv-ranking-card">
+            <div class="tv-card-hd">
+                <span class="tv-card-title"><i class="fas fa-medal"></i> Ranking de Vendedores</span>
+                <button class="btn-neon btn-green btn-sm-export" onclick="exportXls('table-ranking','Ranking_Televentas')">
+                    <i class="fas fa-file-excel"></i> XLS
+                </button>
+            </div>
+            <div class="table-container">
+                <table id="table-ranking">
+                    <thead>
+                        <tr>
+                            <th class="c">#</th>
+                            <th>VENDEDOR</th>
+                            <th class="c">PEDIDOS</th>
+                            <th class="r">TOTAL USD</th>
+                            <th>PART.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (empty($ranking)): ?>
+                        <tr><td colspan="5" class="text-center empty-table-cell">Sin registros.</td></tr>
+                    <?php else:
+                        $max_usd = max(array_column($ranking, 'total_usd')) ?: 1;
+                        foreach ($ranking as $i => $v):
+                            $pct      = ($total_usd > 0) ? round(($v['total_usd'] / $total_usd) * 100, 1) : 0;
+                            $barPct   = ($v['total_usd'] / $max_usd) * 100;
+                            $rank     = $i + 1;
+                            $rankClass = match($rank) { 1 => 'gold', 2 => 'silver', 3 => 'bronze', default => '' };
+                            $palette  = ['rgba(0,180,255,0.85)','rgba(0,230,118,0.85)','rgba(255,193,7,0.85)','rgba(255,82,82,0.85)','rgba(156,39,176,0.85)','rgba(255,152,0,0.85)','rgba(0,188,212,0.85)','rgba(233,30,99,0.85)','rgba(121,85,72,0.85)','rgba(96,125,139,0.85)'];
+                            $color    = $palette[$i % count($palette)];
+                    ?>
+                        <tr class="clickable" onclick="abrirModalVendedor('<?php echo htmlspecialchars($v['codvend']); ?>','<?php echo htmlspecialchars(addslashes($v['nombre_vend'])); ?>')">
+                            <td class="c"><span class="rank-num <?php echo $rankClass; ?>"><?php echo $rank; ?></span></td>
+                            <td>
+                                <div class="text-main-bold"><?php echo htmlspecialchars($v['nombre_vend']); ?></div>
+                                <div class="text-muted-sm">Cód. <?php echo htmlspecialchars($v['codvend']); ?></div>
+                            </td>
+                            <td class="c"><strong><?php echo $v['pedidos']; ?></strong></td>
+                            <td class="r amount-usd">$ <?php echo number_format($v['total_usd'], 2, '.', ','); ?></td>
+                            <td class="min-w-150">
+                                <div class="progress-pct"><?php echo $pct; ?>%</div>
+                                <div class="progress-bar-wrap">
+                                    <div class="progress-bar-fill" style="width:<?php echo $barPct; ?>%; background:<?php echo $color; ?>;"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; endif; ?>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="text-right opacity-70"><i class="fas fa-sigma"></i> TOTAL (<?php echo count($ranking); ?> vendedores)</td>
+                            <td class="c total-amount"><?php echo $total_pedidos; ?></td>
+                            <td class="r total-usd">$ <?php echo number_format($total_usd, 2, '.', ','); ?></td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="click-tip">
+                <i class="fas fa-info-circle"></i>
+                Haz clic en un vendedor para ver el desglose completo de sus pedidos.
+            </div>
+        </div>
+
+    </div><!-- /.tv-analysis-grid -->
 
 </div><!-- /.content-wrapper -->
 </main><!-- /.main-content -->
+
 
 <!-- ============================================================
      MODAL DETALLE VENDEDOR
@@ -1053,15 +735,11 @@ function exportXls(tableId, name) {
             <span class="legend-name">${label}</span>
             <span class="legend-val">${fmtUSD(val)}</span>
         `;
-        // Al hacer clic en la leyenda → resaltar sector en el gráfico
+        // Al hacer clic en la leyenda → togglear visibilidad del segmento
         item.addEventListener('click', () => {
-            const meta = pie.getDatasetMeta(0);
-            // Toggle visibilidad del segmento
-            if (pie.getDataVisibility(i)) {
-                pie.hide(0, i);
-            } else {
-                pie.show(0, i);
-            }
+            pie.toggleDataVisibility(i);
+            pie.update();
+            item.classList.toggle('hidden');
         });
         legend.appendChild(item);
     });
@@ -1131,9 +809,9 @@ function exportXls(tableId, name) {
         `;
         // Clic en segmento de leyenda: toggle visual en el gráfico
         item.addEventListener('click', (e) => {
-            // Si el clic fue sobre el dot o el nombre → toggle gráfico
-            // Si quiere abrir modal → doble clic o botón dedicado (ver abajo)
-            pieUsr.getDataVisibility(i) ? pieUsr.hide(0, i) : pieUsr.show(0, i);
+            pieUsr.toggleDataVisibility(i);
+            pieUsr.update();
+            item.classList.toggle('hidden');
         });
         // Botón dedicado "Ver pedidos" a la derecha de cada ítem de leyenda
         const btnVer = document.createElement('button');
@@ -1173,13 +851,13 @@ function switchDona(modo) {
     const btnUsr   = document.getElementById('btn-dona-usr');
 
     if (modo === 'usuario') {
-        wrapVend.style.display = 'none';
-        wrapUsr.style.display  = 'flex';
+        wrapVend.classList.add('chart-hidden');
+        wrapUsr.classList.remove('chart-hidden');
         btnVend.classList.remove('active');
         btnUsr.classList.add('active');
     } else {
-        wrapUsr.style.display  = 'none';
-        wrapVend.style.display = 'flex';
+        wrapUsr.classList.add('chart-hidden');
+        wrapVend.classList.remove('chart-hidden');
         btnUsr.classList.remove('active');
         btnVend.classList.add('active');
     }
@@ -1243,7 +921,7 @@ function renderModalVendedor(data) {
     modalRef.innerHTML = `
         <strong>${v.nombre_vend || ('Vendedor ' + (v.codvend || ''))}</strong>
         &bull; Cód. ${v.codvend || '—'}
-        &bull; ${v.correo ? `<a href="mailto:${v.correo}" style="color:var(--primary);">${v.correo}</a>` : ''}
+        &bull; ${v.correo ? `<a href="mailto:${v.correo}" class="text-primary">${v.correo}</a>` : ''}
         &bull; ${v.telefono || ''}`;
 
     // Estado de estatus para JS
@@ -1252,7 +930,7 @@ function renderModalVendedor(data) {
         if (s === 'C') return '<span class="badge badge-ok"><i class="fas fa-check-circle"></i> CERRADO</span>';
         if (s === 'P') return '<span class="badge badge-low"><i class="fas fa-clock"></i> PENDIENTE</span>';
         if (s === 'X') return '<span class="badge badge-critical"><i class="fas fa-times-circle"></i> ANULADO</span>';
-        return `<span class="badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid var(--border);">${s}</span>`;
+        return `<span class="badge badge-neutral">${s}</span>`;
     };
 
     let html = `
@@ -1303,11 +981,11 @@ function renderModalVendedor(data) {
                 <td><span class="code-badge">${r.pedido}</span></td>
                 <td>${fmtFec(r.fecha_ped)}</td>
                 <td>
-                    <div style="font-weight:700;">${r.cliente}</div>
-                    <div style="font-size:0.72rem; color:var(--text-muted);">${r.cod_cli}</div>
+                    <div class="fw-700">${r.cliente}</div>
+                    <div class="text-muted-sm">${r.cod_cli}</div>
                 </td>
-                <td class="r" style="font-weight:700;">${fmtCur(r.total_bs)}</td>
-                <td class="r" style="color:var(--accent-green); font-weight:700;">${fmtUSD2(r.total_usd)}</td>
+                <td class="r fw-700">${fmtCur(r.total_bs)}</td>
+                <td class="r amount-usd">${fmtUSD2(r.total_usd)}</td>
                 <td class="c">${estBadge(r.estatus)}</td>
             </tr>`;
         });
@@ -1316,8 +994,8 @@ function renderModalVendedor(data) {
                 <tfoot>
                     <tr>
                         <td colspan="3" class="text-right">TOTAL:</td>
-                        <td class="r" style="font-weight:800;">${fmtCur(totBS)}</td>
-                        <td class="r" style="font-weight:800; color:var(--accent-green);">${fmtUSD2(totUSD)}</td>
+                        <td class="r total-amount">${fmtCur(totBS)}</td>
+                        <td class="r total-usd">${fmtUSD2(totUSD)}</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -1388,7 +1066,7 @@ function renderModalUsuario(codUsr, data) {
 
     // Actualizar cabecera del modal
     document.getElementById('modalRef').innerHTML =
-        `<i class="fas fa-user-shield" style="color:var(--primary); margin-right:6px;"></i>
+        `<i class="fas fa-user-shield icon-primary-mr"></i>
          <strong>Operador: ${codUsr}</strong>
          &bull; ${fmtFec(F_INI.replaceAll('-','-'))} — ${fmtFec(F_FIN.replaceAll('-','-'))}`;
 
@@ -1397,7 +1075,7 @@ function renderModalUsuario(codUsr, data) {
         if (s === 'C') return '<span class="badge badge-ok"><i class="fas fa-check-circle"></i> CERRADO</span>';
         if (s === 'P') return '<span class="badge badge-low"><i class="fas fa-clock"></i> PENDIENTE</span>';
         if (s === 'X') return '<span class="badge badge-critical"><i class="fas fa-times-circle"></i> ANULADO</span>';
-        return `<span class="badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted);border:1px solid var(--border);">${s}</span>`;
+        return `<span class="badge badge-neutral">${s}</span>`;
     };
 
     let html = `
@@ -1416,7 +1094,7 @@ function renderModalUsuario(codUsr, data) {
             </div>
             <div class="mic">
                 <span class="lbl">Usuario / Operador</span>
-                <span class="val" style="font-size:0.95rem;">${codUsr}</span>
+                <span class="val fs-095">${codUsr}</span>
             </div>
         </div>
         <div class="modal-sec-ttl">
@@ -1448,15 +1126,15 @@ function renderModalUsuario(codUsr, data) {
                 <td><span class="code-badge">${r.pedido}</span></td>
                 <td>${fmtFec(r.fecha_ped)}</td>
                 <td>
-                    <div style="font-weight:700;">${r.cliente}</div>
-                    <div style="font-size:0.72rem; color:var(--text-muted);">${r.cod_cli}</div>
+                    <div class="fw-700">${r.cliente}</div>
+                    <div class="text-muted-sm">${r.cod_cli}</div>
                 </td>
                 <td>
-                    <div style="font-weight:600;">${r.nombre_vend ?? '—'}</div>
-                    <div style="font-size:0.72rem; color:var(--text-muted);">Cód. ${r.codvend ?? '—'}</div>
+                    <div class="fw-600">${r.nombre_vend ?? '—'}</div>
+                    <div class="text-muted-sm">Cód. ${r.codvend ?? '—'}</div>
                 </td>
-                <td class="r" style="font-weight:700;">${fmtCur(r.total_bs)}</td>
-                <td class="r" style="color:var(--accent-green); font-weight:700;">${fmtUSD2(r.total_usd)}</td>
+                <td class="r fw-700">${fmtCur(r.total_bs)}</td>
+                <td class="r amount-usd">${fmtUSD2(r.total_usd)}</td>
                 <td class="c">${estBadge(r.estatus)}</td>
             </tr>`;
         });
@@ -1465,8 +1143,8 @@ function renderModalUsuario(codUsr, data) {
                 <tfoot>
                     <tr>
                         <td colspan="4" class="text-right">TOTAL (${p.length} pedidos):</td>
-                        <td class="r" style="font-weight:800;">${fmtCur(totBS)}</td>
-                        <td class="r" style="font-weight:800; color:var(--accent-green);">${fmtUSD2(totUSD)}</td>
+                        <td class="r total-amount">${fmtCur(totBS)}</td>
+                        <td class="r total-usd">${fmtUSD2(totUSD)}</td>
                         <td></td>
                     </tr>
                 </tfoot>
