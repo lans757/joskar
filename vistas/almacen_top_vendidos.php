@@ -134,7 +134,7 @@ include('../includes/sidebar.php');
                     <select name="codprov">
                         <option value="">TODOS LOS PROVEEDORES</option>
                         <?php foreach($proveedores as $p): ?>
-                            <option value="<?php echo $p['proveed']; ?>" <?php echo ($f_prov == $p['proveed'] ? 'selected' : ''); ?>>
+                            <option value="<?php echo $p['proveed']; ?>" <?php echo ($f_prov == $p['proveed'] ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($p['nombre']); ?>
                             </option>
                         <?php endforeach; ?>

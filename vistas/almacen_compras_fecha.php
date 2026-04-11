@@ -225,7 +225,7 @@ function formatDL($val) { return '$ ' . number_format($val, 2, ',', '.'); }
                 <label>Hasta (Recepción)</label>
                 <input type="date" name="f_fin" value="<?php echo $f_fin; ?>">
             </div>
-            <div class="filter-group grow">
+            <div class="filter-group" style="flex-grow: 1;">
                 <label>Búsqueda Rápida</label>
                 <div style="display:flex; gap:10px;">
                     <input type="text" name="f_txt" id="search-input" value="<?php echo htmlspecialchars($f_txt); ?>" placeholder="Número, Proveedor o Usuario...">

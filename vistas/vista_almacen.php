@@ -111,7 +111,7 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
                         <?php 
                         $get_codprov = $_GET['codprov'] ?? '';
                         foreach($proveedores as $p): ?>
-                            <option value="<?php echo $p['proveed']; ?>" <?php echo $get_codprov === $p['proveed'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($p['nombre']); ?></option>
+                            <option value="<?php echo $p['proveed']; ?>" <?php echo $get_codprov === $p['proveed'] ? 'selected' : ''; ?> <?php echo htmlspecialchars($p['nombre']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

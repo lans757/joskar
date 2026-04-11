@@ -841,7 +841,7 @@ tbody tr.clickable:hover { cursor:pointer; background:rgba(0,180,255,0.1) !impor
                         <!-- Celda usuario que cargó el pedido (campo sfac.usuario) -->
                         <td>
                             <span class="code-badge" style="background:rgba(0,180,255,0.08); color:var(--primary); border-color:rgba(0,180,255,0.2);">
-                                <i class="fas fa-user-shield" style="font-size:0.65rem; margin-right:3px;"></i><?php echo htmlspecialchars($r['usuario_cargo'] ?? '—'); ?>
+                                <i class="fas fa-user-shield" style="font-size:0.65rem; margin-right:3px;"></i> <?php echo htmlspecialchars($r['usuario_cargo'] ?? '—'); ?>
                             </span>
                         </td>
                         <td class="r" style="font-weight:700;">Bs. <?php echo number_format($r['total_bs'], 2, ',', '.'); ?></td>
