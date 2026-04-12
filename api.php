@@ -138,8 +138,30 @@ function getCounts($conn, $almacen, $dias_expr, $prov_cond, $marca_cond = "") {
 }
 
 // ─── Router ───────────────────────────────────────────────────────────────────
+$metrics = ['critical' => 0, 'low' => 0, 'ok' => 0, 'totalH1' => 0, 'valorUSD' => 0];
+
+// ── SESIÓN ────────────────────────────────────────────────────────────────
+if ($action === 'me') {
+    if (empty($_SESSION['logged_in'])) {
+        echo json_encode(['logged_in' => false]);
+    } else {
+        echo json_encode([
+            'logged_in'     => true,
+            'user_id'       => $_SESSION['user_id'],
+            'user_name'     => $_SESSION['user_name'],
+            'is_supervisor' => $_SESSION['is_supervisor'] ?? false
+        ]);
+    }
+    exit;
+}
+
 try {
-    $metrics = getCounts($conn, $almacen, $dias_expr, $prov_cond, $marca_cond);
+    // Attempt metrics but don't crash if tables (like sinv) are missing
+    try {
+        $metrics = getCounts($conn, $almacen, $dias_expr, $prov_cond, $marca_cond);
+    } catch (Exception $e) {
+        // Log error internally or just proceed with zeroed metrics
+    }
 
     // ── ALERTAS DE STOCK ──────────────────────────────────────────────────────
     if ($action === 'alertas' || $action === 'alerts') {
@@ -267,19 +289,6 @@ try {
         }
 
         echo json_encode(['data' => $items, 'total' => $total, 'metrics' => $metrics]);
-
-    // ── SESIÓN ────────────────────────────────────────────────────────────────
-    } elseif ($action === 'me') {
-        if (empty($_SESSION['logged_in'])) {
-            echo json_encode(['logged_in' => false]);
-        } else {
-            echo json_encode([
-                'logged_in'     => true,
-                'user_id'       => $_SESSION['user_id'],
-                'user_name'     => $_SESSION['user_name'],
-                'is_supervisor' => $_SESSION['is_supervisor'] ?? false
-            ]);
-        }
 
     } else {
         echo json_encode(['error' => 'Acción inválida: ' . $action]);

@@ -1,8 +1,8 @@
 <?php
 $config = [
     'host' => 'localhost',
-    'user' => 'datasis',
-    'pass' => '1234',
+    'user' => 'root',
+    'pass' => '',
     'db'   => 'datasis'
 ];
 
