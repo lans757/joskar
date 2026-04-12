@@ -35,12 +35,35 @@ Si quieres trabajar en la rama de desarrollo donde están los últimos cambios:
 git checkout dev
 ```
 
-### 3. Configuración de la Base de Datos
+### 3. Configuración del Servidor y Base de Datos
 
-1.  Inicia **Apache** y **MySQL** desde el Panel de Control de XAMPP.
-2.  Accede a [http://localhost/phpmyadmin](http://localhost/phpmyadmin) en tu navegador.
-3.  Crea una nueva base de datos llamada `datasis`.
-4.  _(Opcional)_ Si tienes un archivo `.sql` de respaldo, impórtalo en la base de datos `datasis`.
+Para que el sistema funcione correctamente según el manual técnico, se deben realizar los siguientes ajustes:
+
+1.  **Configuración de PHP (`php.ini`):**
+    Localiza el archivo `php.ini` (usualmente en `C:\xampp\php\php.ini`) y modifica o añade las siguientes líneas:
+    ```ini
+    max_input_vars = 10000
+    memory_limit = 512M
+    max_execution_time = 3000
+    display_errors = On
+    ```
+
+2.  **Configuración de MySQL (`my.ini`):**
+    Localiza el archivo `my.ini` (usualmente en `C:\xampp\mysql\bin\my.ini`) y asegura estos valores bajo la sección `[mysqld]`:
+    ```ini
+    [mysqld]
+    max_allowed_packet = 1024M
+    default-storage-engine = MyISAM
+    sql_mode = NO_ENGINE_SUBSTITUTION
+    ```
+
+3.  **Importación de la Base de Datos:**
+    1.  Inicia **Apache** y **MySQL** desde el Panel de Control de XAMPP.
+    2.  Crea una nueva base de datos llamada `datasis` en PHPMyAdmin o por consola.
+    3.  Importa tu archivo `.sql`. Si el archivo es muy grande, usa la consola de comandos:
+        ```bash
+        mysql -u root datasis < F:\datasis.sql
+        ```
 
 ### 4. Verificar Conexión
 
