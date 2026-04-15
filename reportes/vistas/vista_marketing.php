@@ -238,6 +238,41 @@ if (isset($_GET['ajax']) && ($_GET['ajax'] === 'datos' || $_GET['ajax'] === 'exp
             exit;
         }
 
+        // 3. Obtener Top Proveedor y Distribución por tipo (en el rango completo)
+        $sql_stats = "SELECT 
+                        p.nombre as prov_nombre,
+                        SUM(s.cana * s.preca) as subtotal_bruto,
+                        SUM((s.cana * s.preca * s.descu1 / 100) + (s.cana * s.preca * s.descu2 / 100) + (s.cana * s.preca * s.descu3 / 100) + (s.cana * s.preca * s.descu4 / 100) + (s.descu)) as total_descuento
+                      FROM sitems s
+                      INNER JOIN sfac f ON s.numa = f.numero
+                      INNER JOIN sinv a ON s.codigoa = a.codigo
+                      INNER JOIN sprv p ON a.prov1 = p.proveed
+                      $where
+                      GROUP BY p.nombre
+                      ORDER BY total_descuento DESC
+                      LIMIT 5";
+        $stmt_stats = $pdo->prepare($sql_stats);
+        $stmt_stats->execute($params);
+        $top_provs = $stmt_stats->fetchAll(PDO::FETCH_ASSOC);
+
+        $sql_dist = "SELECT 
+                        SUM(s.cana * s.preca * s.descu1 / 100) as d1,
+                        SUM(s.cana * s.preca * s.descu2 / 100) as d2,
+                        SUM(s.cana * s.preca * s.descu3 / 100) as d3,
+                        SUM(s.cana * s.preca * s.descu4 / 100) as d4,
+                        SUM(s.descu) as de
+                     FROM sitems s
+                     INNER JOIN sfac f ON s.numa = f.numero
+                     INNER JOIN sinv a ON s.codigoa = a.codigo
+                     $where";
+        $stmt_dist = $pdo->prepare($sql_dist);
+        $stmt_dist->execute($params);
+        $d = $stmt_dist->fetch(PDO::FETCH_ASSOC);
+        $dist_descuentos = [
+            (float)($d['d1']??0), (float)($d['d2']??0), (float)($d['d3']??0), (float)($d['de']??0), (float)($d['d4']??0)
+        ];
+
+        header('Content-Type: application/json');
         echo json_encode([
             'filas'       => $processed_rows,
             'active_cols' => array_keys(array_filter($active_cols)),
@@ -246,7 +281,9 @@ if (isset($_GET['ajax']) && ($_GET['ajax'] === 'datos' || $_GET['ajax'] === 'exp
             'count'       => $total_rows,
             'page'        => (int)$page,
             'limit'       => (int)$limit,
-            'total_pages' => (int)$total_pages
+            'total_pages' => (int)$total_pages,
+            'top_provs'   => $top_provs,
+            'dist_desc'   => $dist_descuentos
         ]);
     } catch (PDOException $e) {
         http_response_code(500);
@@ -266,314 +303,6 @@ include('../../includes/header.php');
 include('../../includes/sidebar.php');
 ?>
 
-<style>
-/* Variables y Estilos Globales de ProteoERP */
-:root {
-    --accent-cyan: #06b6d4;
-    --accent-emerald: #10b981;
-    --accent-amber: #f59e0b;
-    --accent-rose: #f43f5e;
-}
-
-.marketing-wrapper {
-    padding: 2rem;
-    max-width: 1600px;
-    margin: 0 auto;
-}
-
-/* Card Estilo Premium */
-.glass-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    transition: var(--transition);
-}
-
-/* Filtros */
-.filters-layout {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1.25rem;
-    align-items: end;
-}
-
-.filter-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.filter-item label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-}
-
-.filter-item select, .filter-item input {
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 0.6rem 0.8rem;
-    color: var(--text-main);
-    font-size: 0.9rem;
-    transition: var(--transition);
-}
-
-.filter-item select:focus, .filter-item input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(0, 180, 255, 0.1);
-    outline: none;
-}
-
-/* Tabla Moderna */
-.table-container {
-    overflow-x: auto;
-    border-radius: var(--radius-md);
-}
-
-.modern-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-.modern-table th {
-    background: rgba(0,0,0,0.02);
-    padding: 1rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    border-bottom: 2px solid var(--border);
-    text-align: left;
-    white-space: nowrap;
-}
-
-.modern-table td {
-    padding: 1rem;
-    font-size: 0.875rem;
-    border-bottom: 1px solid var(--border);
-    vertical-align: middle;
-}
-
-.modern-table tr:last-child td {
-    border-bottom: none;
-}
-
-.modern-table tr:hover {
-    background: rgba(0, 180, 255, 0.03);
-}
-
-/* Badges y Tooltips */
-.badge-discount {
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-weight: 700;
-    font-size: 0.7rem;
-}
-
-.bg-positive { background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald); }
-.bg-high { background: rgba(244, 63, 94, 0.1); color: var(--accent-rose); }
-.bg-none { background: rgba(0,0,0,0.05); color: var(--text-muted); }
-
-.tooltip-cell {
-    position: relative;
-    cursor: help;
-}
-
-.tooltip-content {
-    visibility: hidden;
-    position: absolute;
-    bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #1e293b;
-    color: white;
-    padding: 0.75rem;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    white-space: nowrap;
-    z-index: 100;
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.tooltip-cell:hover .tooltip-content {
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Métricas */
-.metric-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.metric-box {
-    padding: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-}
-
-.metric-icon-box {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-}
-
-.metric-info h4 {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin: 0;
-    text-transform: uppercase;
-    font-weight: 700;
-}
-
-.metric-info p {
-    font-size: 1.5rem;
-    font-weight: 800;
-    margin: 0;
-    color: var(--text-main);
-}
-
-/* Animaciones */
-.fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Loading Overlay Premium */
-#loader-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(8px);
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    transition: opacity 0.3s ease;
-}
-
-.loader-content {
-    text-align: center;
-    background: var(--bg-card);
-    padding: 3rem;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-}
-
-.loader-spinner {
-    width: 64px;
-    height: 64px;
-    border: 4px solid rgba(0, 180, 255, 0.1);
-    border-top: 4px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    margin: 0 auto 1.5rem;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.loader-text {
-    color: var(--text-main);
-    font-size: 1.1rem;
-    font-weight: 800;
-    margin-bottom: 0.5rem;
-    display: block;
-}
-
-.loader-subtext {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-/* Paginación */
-.pagination-container {
-    padding: 1rem 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-top: 1px solid var(--border);
-    background: rgba(0,0,0,0.01);
-}
-
-.pagination-info {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-.pagination-controls {
-    display: flex;
-    gap: 0.25rem;
-}
-
-.page-btn {
-    min-width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-main);
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all 0.2s;
-}
-
-.page-btn:hover:not(:disabled) {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgba(0, 180, 255, 0.05);
-}
-
-.page-btn.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-}
-
-.page-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .marketing-wrapper { padding: 1rem; }
-    .filters-layout { grid-template-columns: 1fr; }
-    .pagination-container { flex-direction: column; gap: 1rem; text-align: center; }
-}
-</style>
-
 <main class="main-content">
     <!-- Overlay de Carga -->
     <div id="loader-overlay">
@@ -586,13 +315,20 @@ include('../../includes/sidebar.php');
 
     <div class="marketing-wrapper fade-in">
         
+            <!-- Navegación de Módulo -->
+        <nav class="module-nav">
+            <a href="marketing_kpis.php" class="nav-item">
+                <i class="fas fa-chart-line"></i> <span>Indicadores KPI</span>
+            </a>
+        </nav>
+        
         <!-- Header Section -->
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-            <div>
-                <h1 class="h2 mb-1" style="font-weight: 800; letter-spacing: -0.025em;">Monitor de Marketing</h1>
-                <p class="text-muted mb-0">Análisis inteligente de facturación y efectividad de descuentos.</p>
-            </div>
-            <div class="d-flex gap-2">
+        <div class="page-title">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>Monitor de Marketing</h1>
+                    <p>Análisis inteligente de facturación y efectividad de descuentos.</p>
+                </div>
                 <button onclick="exportData()" class="btn-neon btn-green">
                     <i class="fas fa-file-csv me-2"></i> Exportar CSV
                 </button>
@@ -621,11 +357,20 @@ include('../../includes/sidebar.php');
             </div>
             <div class="glass-card metric-box">
                 <div class="metric-icon-box" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald);">
-                    <i class="fas fa-shopping-cart"></i>
+                    <i class="fas fa-percentage"></i>
                 </div>
                 <div class="metric-info">
-                    <h4>Monto Neto</h4>
-                    <p id="m-net">Bs 0.00</p>
+                    <h4>% Descuento Prom.</h4>
+                    <p id="m-pct">0%</p>
+                </div>
+            </div>
+            <div class="glass-card metric-box">
+                <div class="metric-icon-box" style="background: rgba(156, 39, 176, 0.1); color: var(--accent-purple, #9c27b0);">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="metric-info">
+                    <h4>Top Laboratorio</h4>
+                    <p id="m-top-prov" style="font-size: 0.9rem; line-height: 1.2;">Cargando...</p>
                 </div>
             </div>
             <div class="glass-card metric-box">
@@ -639,45 +384,37 @@ include('../../includes/sidebar.php');
             </div>
         </div>
 
+        <!-- Charts Section -->
+        <div class="row mb-4 g-4" id="charts-row" style="display: none;">
+            <div class="col-md-5">
+                <div class="glass-card p-4 h-100">
+                    <h5 class="mb-4 fw-bold"><i class="fas fa-chart-pie me-2 text-primary"></i>Distribución de Descuentos</h5>
+                    <div style="height: 250px;"><canvas id="chartDist"></canvas></div>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="glass-card p-4 h-100">
+                    <h5 class="mb-4 fw-bold"><i class="fas fa-chart-bar me-2 text-success"></i>Top 5 Laboratorios (Monto Desc.)</h5>
+                    <div style="height: 250px;"><canvas id="chartTop"></canvas></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Filters Section -->
         <div class="glass-card">
             <form id="filterForm" class="filters-layout" onsubmit="event.preventDefault(); loadData();">
                 <div class="filter-item">
-                    <label>Búsqueda por Mes</label>
-                    <div class="d-flex gap-2">
-                        <select id="quickMonth" class="form-select">
-                            <option value="">-- Mes --</option>
-                            <option value="01">Enero</option>
-                            <option value="02">Febrero</option>
-                            <option value="03">Marzo</option>
-                            <option value="04">Abril</option>
-                            <option value="05">Mayo</option>
-                            <option value="06">Junio</option>
-                            <option value="07">Julio</option>
-                            <option value="08">Agosto</option>
-                            <option value="09">Septiembre</option>
-                            <option value="10">Octubre</option>
-                            <option value="11">Noviembre</option>
-                            <option value="12">Diciembre</option>
-                        </select>
-                        <select id="quickYear" class="form-select">
-                            <?php 
-                            $currY = date('Y');
-                            for($y=$currY; $y>=$currY-2; $y--) {
-                                $sel = ($y == $currY) ? 'selected' : '';
-                                echo "<option value='$y' $sel>$y</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    <!-- Inputs ocultos para enviar al servidor -->
-                    <input type="hidden" name="f_ini" id="f_ini" value="<?= date('Y-m-01') ?>">
-                    <input type="hidden" name="f_fin" id="f_fin" value="<?= date('Y-m-d') ?>">
+                    <label>Fecha Inicio</label>
+                    <input type="date" name="f_ini" id="f_ini" value="<?= date('Y-m-01') ?>" required>
+                </div>
+                <div class="filter-item">
+                    <label>Fecha Fin</label>
+                    <input type="date" name="f_fin" id="f_fin" value="<?= date('Y-m-d') ?>" required>
                 </div>
                 <div class="filter-item">
                     <label>Proveedor</label>
-                    <select name="codprov" id="f_prov">
-                        <option value="">-- Todos --</option>
+                    <select name="codprov" id="f_prov" required>
+                        <option value="">-- Seleccione un Proveedor --</option>
                     </select>
                 </div>
                 <div class="filter-item">
@@ -768,30 +505,21 @@ async function loadFilters() {
     } catch (e) { console.error("Error cargando filtros:", e); }
 }
 
-// Lógica de búsqueda rápida por mes
-document.getElementById('quickMonth').addEventListener('change', updateQuickDates);
-document.getElementById('quickYear').addEventListener('change', updateQuickDates);
-
-function updateQuickDates() {
-    const month = document.getElementById('quickMonth').value;
-    const year = document.getElementById('quickYear').value;
-    if (!month || !year) return;
-
-    const firstDay = `${year}-${month}-01`;
-    const lastDay = new Date(year, month, 0).toISOString().split('T')[0];
-
-    document.getElementById('f_ini').value = firstDay;
-    document.getElementById('f_fin').value = lastDay;
-}
-
-function validateDates() {
-    const month = document.getElementById('quickMonth').value;
-    const year = document.getElementById('quickYear').value;
+function validateFilters() {
+    const fIni = document.getElementById('f_ini').value;
+    const fFin = document.getElementById('f_fin').value;
+    const fProv = document.getElementById('f_prov').value;
     
-    if (!month || !year) {
-        alert("⚠️ Por favor selecciona un mes para realizar la búsqueda.");
+    if (!fIni || !fFin) {
+        alert("⚠️ Por favor selecciona ambas fechas (Inicio y Fin).");
         return false;
     }
+    
+    if (!fProv) {
+        alert("⚠️ Debes seleccionar un proveedor obligatorio para generar la consulta.");
+        return false;
+    }
+    
     return true;
 }
 
@@ -800,7 +528,7 @@ const recordsPerPage = 50;
 
 // 2. Cargar Datos con AJAX
 async function loadData(page = 1) {
-    if (!validateDates()) return;
+    if (!validateFilters()) return;
 
     const loader = document.getElementById('loader-overlay');
     loader.style.display = 'flex';
@@ -826,6 +554,7 @@ async function loadData(page = 1) {
         renderRows(d);
         updateMetrics(d);
         renderPagination(d);
+        renderCharts(d);
 
     } catch (e) {
         body.innerHTML = `<tr><td colspan="20" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`;
@@ -949,8 +678,79 @@ function renderRows(data) {
 function updateMetrics(d) {
     document.getElementById('m-count').innerText = d.count;
     document.getElementById('m-discount').innerText = 'Bs ' + d.totales.descuento.toLocaleString('es-VE', {minimumFractionDigits:2});
-    document.getElementById('m-net').innerText = 'Bs ' + (d.totales.subtotal - d.totales.descuento).toLocaleString('es-VE', {minimumFractionDigits:2});
     document.getElementById('m-total').innerText = 'Bs ' + d.totales.total.toLocaleString('es-VE', {minimumFractionDigits:2});
+    
+    // % Promedio
+    const pct = d.totales.subtotal > 0 ? (d.totales.descuento / d.totales.subtotal * 100).toFixed(1) : 0;
+    document.getElementById('m-pct').innerText = pct + '%';
+
+    // Top Prov
+    const top = d.top_provs[0] ? d.top_provs[0].prov_nombre : '---';
+    document.getElementById('m-top-prov').innerText = top.length > 25 ? top.substring(0, 25) + '...' : top;
+}
+
+let chartDistInst = null;
+let chartTopInst = null;
+
+// 5.1 Renderizar Gráficos
+function renderCharts(d) {
+    document.getElementById('charts-row').style.display = 'flex';
+    
+    // Gráfico de Dona: Distribución
+    const ctxDist = document.getElementById('chartDist').getContext('2d');
+    if (chartDistInst) chartDistInst.destroy();
+    
+    chartDistInst = new Chart(ctxDist, {
+        type: 'doughnut',
+        data: {
+            labels: ['Comercial', 'P. Pago', 'Volumen', 'Especial', 'Promoción'],
+            datasets: [{
+                data: d.dist_desc,
+                backgroundColor: ['#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+                borderWidth: 0,
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+            },
+            cutout: '70%'
+        }
+    });
+
+    // Gráfico de Barras: Top Laboratorios
+    const ctxTop = document.getElementById('chartTop').getContext('2d');
+    if (chartTopInst) chartTopInst.destroy();
+
+    const labels = d.top_provs.map(p => p.prov_nombre.substring(0, 15));
+    const values = d.top_provs.map(p => p.total_descuento);
+
+    chartTopInst = new Chart(ctxTop, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Monto Descuento (Bs)',
+                data: values,
+                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                borderRadius: 8,
+                barThickness: 35
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
 }
 
 // 6. Renderizar Paginación
@@ -1003,15 +803,9 @@ function exportData() {
     window.location.href = '?' + params.toString();
 }
 
-// Init
-// Establecer el mes actual por defecto
-const now = new Date();
-document.getElementById('quickMonth').value = String(now.getMonth() + 1).padStart(2, '0');
-document.getElementById('quickYear').value  = String(now.getFullYear());
-updateQuickDates();
-
+// Auto-click buscar off: obligamos a seleccionar el proveedor primero
 loadFilters();
-loadData();
+// Ya no hacemos loadData automático porque forzamos la selección de proveedor
 </script>
 
 <?php include('../../includes/footer.php'); ?>
