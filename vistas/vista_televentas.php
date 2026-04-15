@@ -133,6 +133,7 @@ $f_ini      = $_GET['f_ini']      ?? date('Y-m-01');
 $f_fin      = $_GET['f_fin']      ?? date('Y-m-d');
 $f_txt      = $_GET['f_txt']      ?? '';   // Buscar por nombre vendedor o cliente
 $f_usuario  = $_GET['f_usuario']  ?? '';   // Filtro por usuario que cargó el pedido (campo f.usuario en sfac)
+$f_promotor = $_GET['f_promotor'] ?? '';   // Filtro por promotor (columna promotor en pfac)
 
 // --- Paginación para tabla de detalle completo ---
 $limit  = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
@@ -144,8 +145,6 @@ $offset = ($page - 1) * $limit;
 // ============================================================
 try {
     // --- Listado de usuarios para el <select> del filtro ---
-    // Obtiene todos los valores distintos del campo `usuario` registrados en sfac
-    // para el tipo de documento 'PEDFTP'. Se usa en el <select> del formulario.
     $stmt_usuarios = $pdo->query(
         "SELECT DISTINCT f.usuario
          FROM pfac f
@@ -155,15 +154,29 @@ try {
     );
     $lista_usuarios = $stmt_usuarios->fetchAll(PDO::FETCH_COLUMN); // array plano de strings
 
+    // --- Listado de promotores para el <select> del filtro ---
+    $stmt_proms = $pdo->query(
+        "SELECT DISTINCT f.promotor
+         FROM pfac f
+         WHERE f.promotor IS NOT NULL AND f.promotor <> ''
+         ORDER BY f.promotor ASC"
+    );
+    $lista_promotores = $stmt_proms->fetchAll(PDO::FETCH_COLUMN);
+
     // --- Parámetros base ---
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
     $where  = "WHERE f.fecha >= :ini AND f.fecha <= :fin";
 
     // Filtro por usuario que cargó el pedido (campo f.usuario)
-    // Cuando está activo restringe TODAS las queries: KPIs, ranking, gráfico y detalle
     if (!empty($f_usuario)) {
         $where .= " AND f.usuario = :usuario";
         $params[':usuario'] = $f_usuario;
+    }
+
+    // Filtro por promotor
+    if (!empty($f_promotor)) {
+        $where .= " AND f.promotor = :promotor";
+        $params[':promotor'] = $f_promotor;
     }
 
     // Filtro de texto libre (vendedor o cliente)
@@ -313,9 +326,6 @@ $grafico = prepararDatosGrafico($ranking);
 
 // ============================================================
 // DATOS PARA LA DONA DE USUARIOS (DONA_USUARIOS_v1)
-// Agrupa las ventas del período (con los mismos filtros activos)
-// por el campo sfac.usuario. Reutiliza $where y $params que ya
-// incluyen el filtro f_usuario si está presente.
 // ============================================================
 try {
     $stmt_usr = $pdo->prepare(
@@ -336,6 +346,32 @@ try {
     $ranking_usr = []; // Si falla no rompe la página
 }
 
+// ============================================================
+// DATOS PARA LA DONA DE PROMOTORES
+// ============================================================
+try {
+    $stmt_prom = $pdo->prepare(
+        "SELECT
+             COALESCE(NULLIF(f.promotor,''), '(sin promotor)')    AS nombre_prom,
+             COUNT(DISTINCT f.numero)                             AS pedidos,
+             SUM(f.totalg)                                        AS total_bs,
+             SUM(CASE WHEN f.dolar > 0 THEN ROUND(f.totalg / f.dolar, 2) ELSE 0 END) AS total_usd
+         FROM pfac f
+         LEFT JOIN vend v ON v.vendedor = f.vd
+         $where
+         GROUP BY f.promotor
+         ORDER BY total_usd DESC"
+    );
+    $stmt_prom->execute($params);
+    $ranking_prom = $stmt_prom->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $ranking_prom = [];
+}
+
+$grafico_prom = prepararDatosGrafico(
+    array_map(fn($r) => array_merge($r, ['nombre_vend' => $r['nombre_prom']]), $ranking_prom)
+);
+
 // Reutiliza la misma función prepararDatosGrafico: los labels serán
 // los nombres de usuario en lugar de nombres de vendedor.
 $grafico_usr = prepararDatosGrafico(
@@ -348,12 +384,12 @@ $grafico_usr = prepararDatosGrafico(
      Los estilos globales se heredan de style.css vía header.php
      ============================================================ -->
 
-
+el mundo de buenas de ideas, esta hecho por los que las ejecutan 
 <!-- ============================================================
      CONTENIDO PRINCIPAL
      ============================================================ -->
 <main class="main-content">
-<div class="content-wrapper">
+<div class="content-wrapper animate-in">
 
     <!-- Navegación de Módulo -->
     <nav class="module-nav">
@@ -363,20 +399,74 @@ $grafico_usr = prepararDatosGrafico(
         </a>
     </nav>
 
-    <!-- CABECERA DE PÁGINA -->
-    <div class="page-title">
-        <h1><i class="fas fa-headset"></i> Monitor de Televentas (Pedidos)</h1>
-        <p>Ranking de vendedores &bull; Pedidos <code>PFAC</code> &bull;
-           <strong><?php echo date('d/m/Y', strtotime($f_ini)); ?></strong>
-           &mdash;
-           <strong><?php echo date('d/m/Y', strtotime($f_fin)); ?></strong>
-           <?php if (!empty($f_usuario)): ?>
-               &bull; <span class="user-filter-badge">
-                   <i class="fas fa-user-shield"></i> Usuario: <?php echo htmlspecialchars($f_usuario); ?>
-               </span>
-           <?php endif; ?>
-        </p>
+      <!-- Gráfico de Promotores (Antes del título) -->
+    <div class="tv-promotor-chart-container mb-4">
+        <div class="card glass-card" style="max-width: 500px; margin: 0 auto;">
+            <div class="tv-card-hd d-flex justify-content-between align-items-center">
+                <span class="tv-card-title"><i class="fas fa-bullhorn text-warning"></i> Participación por Promotor</span>
+            </div>
+            <div class="chart-wrapper p-3">
+                <div style="height: 180px;"><canvas id="piePromotores"></canvas></div>
+                <div id="pieLeyendaProm" class="chart-legend-compact mt-2"></div>
+            </div>
+        </div>
     </div>
+
+      <!-- ====================================================
+         CABECERA + FILTRO COMPACTO
+         ==================================================== -->
+    <div class="tv-header-row">
+        <div class="tv-title-block">
+            <div class="tv-module-tag"><i class="fas fa-headset"></i> Televentas</div>
+            <h1>Monitor de Ventas</h1>
+        </div>
+        
+        <div class="tv-controls-group">
+            <div class="tv-period-minimal">
+                <i class="fas fa-calendar-alt"></i>
+                <?php echo date('d/m/Y', strtotime($f_ini)); ?> &mdash; <?php echo date('d/m/Y', strtotime($f_fin)); ?>
+                <?php if (!empty($f_usuario)): ?> <span class="premium-badge badge-primary"><?php echo htmlspecialchars($f_usuario); ?></span> <?php endif; ?>
+                <?php if (!empty($f_promotor)): ?> <span class="premium-badge badge-success"><?php echo htmlspecialchars($f_promotor); ?></span> <?php endif; ?>
+            </div>
+            
+            <form method="GET" class="tv-filter-compact">
+                <div class="tv-input-wrap">
+                    <label>Desde</label>
+                    <input type="date" name="f_ini" value="<?php echo $f_ini; ?>">
+                </div>
+                <div class="tv-input-wrap">
+                    <label>Hasta</label>
+                    <input type="date" name="f_fin" value="<?php echo $f_fin; ?>">
+                </div>
+                <div class="tv-input-wrap">
+                    <label>Operador</label>
+                    <select name="f_usuario">
+                        <option value="">— Todos —</option>
+                        <?php foreach ($lista_usuarios as $usr): ?>
+                        <option value="<?php echo htmlspecialchars($usr); ?>" <?php echo ($f_usuario === $usr) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($usr); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="tv-input-wrap">
+                    <label>Promotor</label>
+                    <select name="f_promotor">
+                        <option value="">— Todos —</option>
+                        <?php foreach ($lista_promotores as $p): ?>
+                        <option value="<?php echo htmlspecialchars($p); ?>" <?php echo ($f_promotor === $p) ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($p); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit" class="tv-btn-apply">
+                    <i class="fas fa-sync-alt"></i> Aplicar
+                </button>
+            </form>
+        </div>
+    </div>
+
 
     <!-- ====================================================
          KPI CARDS
@@ -391,12 +481,12 @@ $grafico_usr = prepararDatosGrafico(
             </div>
         </div>
 
-        <!-- Total Ventas BS -->
+        <!-- Ticket Promedio USD -->
         <div class="card metric-card primary">
-            <div class="metric-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="metric-icon"><i class="fas fa-ticket-alt"></i></div>
             <div class="metric-content">
-                <span class="metric-label">Total Ventas (BS)</span>
-                <p class="metric-value">Bs. <?php echo number_format($total_bs, 2, ',', '.'); ?></p>
+                <span class="metric-label">Ticket Promedio (USD)</span>
+                <p class="metric-value">$ <?php echo number_format(($total_pedidos > 0 ? $total_usd / $total_pedidos : 0), 2, '.', ','); ?></p>
             </div>
         </div>
 
@@ -420,47 +510,6 @@ $grafico_usr = prepararDatosGrafico(
     </div>
 
     <!-- ====================================================
-         CABECERA + FILTRO COMPACTO
-         ==================================================== -->
-    <div class="tv-header-row">
-        <div class="tv-title-block">
-            <div class="tv-module-tag"><i class="fas fa-headset"></i> Televentas</div>
-            <h1>Monitor de Ventas</h1>
-            <p class="tv-period">
-                <i class="fas fa-calendar-alt"></i>
-                <?php echo date('d/m/Y', strtotime($f_ini)); ?> &mdash; <?php echo date('d/m/Y', strtotime($f_fin)); ?>
-                <?php if (!empty($f_usuario)): ?>
-                    <span class="user-filter-badge"><i class="fas fa-user-shield"></i> <?php echo htmlspecialchars($f_usuario); ?></span>
-                <?php endif; ?>
-            </p>
-        </div>
-        <form method="GET" class="tv-filter-compact">
-            <div class="tv-input-wrap">
-                <label>Desde</label>
-                <input type="date" name="f_ini" value="<?php echo $f_ini; ?>">
-            </div>
-            <div class="tv-input-wrap">
-                <label>Hasta</label>
-                <input type="date" name="f_fin" value="<?php echo $f_fin; ?>">
-            </div>
-            <div class="tv-input-wrap">
-                <label><i class="fas fa-user-shield icon-mr"></i>Operador</label>
-                <select name="f_usuario">
-                    <option value="">— Todos —</option>
-                    <?php foreach ($lista_usuarios as $usr): ?>
-                    <option value="<?php echo htmlspecialchars($usr); ?>" <?php echo ($f_usuario === $usr) ? 'selected' : ''; ?>>
-                        <?php echo htmlspecialchars($usr); ?>
-                    </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <button type="submit" class="tv-btn-apply">
-                <i class="fas fa-sync-alt"></i> Aplicar
-            </button>
-        </form>
-    </div>
-
-    <!-- ====================================================
          HERO KPI — VENTAS USD (elemento visual dominante)
          ==================================================== -->
     <div class="tv-hero-kpi">
@@ -472,7 +521,7 @@ $grafico_usr = prepararDatosGrafico(
                 $ <?php echo number_format($total_usd, 2, '.', ','); ?>
                 <span class="tv-hero-currency">USD</span>
             </div>
-            <div class="tv-hero-bs">Bs. <?php echo number_format($total_bs, 2, ',', '.'); ?></div>
+            <div class="tv-hero-bs" style="opacity: 0.5; font-size: 0.8rem;">Ref. Bs. <?php echo number_format($total_bs, 2, ',', '.'); ?></div>
         </div>
         <div class="tv-hero-trend">
             <div class="tv-trend-item">
@@ -505,10 +554,10 @@ $grafico_usr = prepararDatosGrafico(
             <div class="tv-card-hd">
                 <span class="tv-card-title"><i class="fas fa-chart-pie"></i> Participación</span>
                 <div class="tv-dona-tabs">
-                    <button id="btn-dona-vend" onclick="switchDona('vendedor')" class="btn-dona-tab active">
+                    <button id="btn-dona-vend" onclick="switchDona('vendedor')" class="btn-dona-tab">
                         <i class="fas fa-user-tie"></i> Vendedor
                     </button>
-                    <button id="btn-dona-usr" onclick="switchDona('usuario')" class="btn-dona-tab">
+                    <button id="btn-dona-usr" onclick="switchDona('usuario')" class="btn-dona-tab active">
                         <i class="fas fa-user-shield"></i> Usuario
                     </button>
                 </div>
@@ -516,11 +565,11 @@ $grafico_usr = prepararDatosGrafico(
             <?php if (empty($ranking)): ?>
                 <p class="empty-data-msg">No hay datos en el rango seleccionado.</p>
             <?php else: ?>
-            <div id="wrap-dona-vendedor" class="chart-wrapper">
+            <div id="wrap-dona-vendedor" class="chart-wrapper chart-hidden">
                 <div class="chart-canvas-wrap"><canvas id="pieVentas"></canvas></div>
                 <div class="chart-legend" id="pieLeyenda"></div>
             </div>
-            <div id="wrap-dona-usuario" class="chart-wrapper chart-hidden">
+            <div id="wrap-dona-usuario" class="chart-wrapper">
                 <div class="chart-canvas-wrap"><canvas id="pieUsuarios"></canvas></div>
                 <div class="chart-legend" id="pieLeyendaUsr"></div>
             </div>
@@ -532,7 +581,7 @@ $grafico_usr = prepararDatosGrafico(
             <div class="tv-card-hd">
                 <span class="tv-card-title"><i class="fas fa-medal"></i> Ranking de Vendedores</span>
                 <button class="btn-neon btn-green btn-sm-export" onclick="exportXls('table-ranking','Ranking_Televentas')">
-                    <i class="fas fa-file-excel"></i> XLS
+                    <i class="fas fa-file-excel"></i> EXCEL
                 </button>
             </div>
             <div class="table-container">
@@ -646,6 +695,11 @@ const usrLabels  = <?php echo json_encode($grafico_usr['labels'],  JSON_UNESCAPE
 const usrData    = <?php echo json_encode($grafico_usr['data']); ?>;
 const usrColores = <?php echo json_encode($grafico_usr['colores']); ?>;
 
+// --- Datos Promotores ---
+const promLabels  = <?php echo json_encode($grafico_prom['labels'],  JSON_UNESCAPED_UNICODE); ?>;
+const promData    = <?php echo json_encode($grafico_prom['data']); ?>;
+const promColores = <?php echo json_encode($grafico_prom['colores']); ?>;
+
 // Rango de fechas activo (para pasar al AJAX de detalle)
 const F_INI = '<?php echo $f_ini; ?>';
 const F_FIN = '<?php echo $f_fin; ?>';
@@ -733,6 +787,54 @@ function exportXls(tableId, name) {
             pie.update();
             item.classList.toggle('hidden');
         });
+        legend.appendChild(item);
+    });
+})();
+
+// --- Gráfico de Promotores ---
+(function initPiePromotores() {
+    const canvas = document.getElementById('piePromotores');
+    if (!canvas || promData.length === 0) return;
+
+    const totalUSD = promData.reduce((a, b) => a + b, 0);
+    const fmtUSD = (n) => '$ ' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(n);
+    const fmtPct = (n) => (totalUSD > 0 ? ((n / totalUSD) * 100).toFixed(1) : 0) + '%';
+
+    new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: promLabels,
+            datasets: [{
+                data: promData,
+                backgroundColor: promColores,
+                borderColor: 'rgba(0,0,0,0.1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `  ${ctx.label}: ${fmtUSD(ctx.parsed)} (${fmtPct(ctx.parsed)})`
+                    }
+                }
+            }
+        }
+    });
+
+    // Leyenda compacta
+    const legend = document.getElementById('pieLeyendaProm');
+    promLabels.forEach((label, i) => {
+        const item = document.createElement('div');
+        item.style.display = 'inline-flex';
+        item.style.alignItems = 'center';
+        item.style.marginRight = '10px';
+        item.style.fontSize = '0.7rem';
+        item.innerHTML = `<span style="width:8px; height:8px; background:${promColores[i]}; border-radius:50%; margin-right:4px;"></span>${label}`;
         legend.appendChild(item);
     });
 })();
@@ -828,6 +930,73 @@ function exportXls(tableId, name) {
                 abrirModalUsuario(label);
             }
         }
+    });
+})();
+
+// ============================================================
+// DONA PROMOTORES — Inicialización
+// ============================================================
+(function initDonaPromotores() {
+    const canvas = document.getElementById('piePromotores');
+    if (!canvas || promData.length === 0) return;
+
+    const totalP = promData.reduce((a, b) => a + b, 0);
+    const fmtUSD = (n) => '$ ' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(n);
+    const fmtPct = (n) => (totalP > 0 ? ((n / totalP) * 100).toFixed(1) : 0) + '%';
+
+    const pieProm = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: promLabels,
+            datasets: [{
+                data:            promData,
+                backgroundColor: promColores,
+                borderColor:     'rgba(0,0,0,0.3)',
+                borderWidth:     2,
+                hoverOffset:     12,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '55%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `  ${ctx.label}: ${fmtUSD(ctx.parsed)} (${fmtPct(ctx.parsed)})`
+                    },
+                    backgroundColor: 'rgba(15,20,30,0.95)',
+                    titleColor: '#fff',
+                    bodyColor: 'rgba(255,255,255,0.85)',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
+                    padding: 14,
+                    cornerRadius: 8,
+                }
+            },
+            animation: { animateRotate: true, duration: 800 }
+        }
+    });
+
+    const legendProm = document.getElementById('pieLeyendaProm');
+    if (!legendProm) return;
+
+    promLabels.forEach((label, i) => {
+        const val  = promData[i];
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `
+            <span class="legend-dot" style="background:${promColores[i]};"></span>
+            <span class="legend-name">${label}</span>
+            <span class="legend-val">${fmtUSD(val)}</span>
+        `;
+        item.addEventListener('click', () => {
+            pieProm.toggleDataVisibility(i);
+            pieProm.update();
+            item.classList.toggle('hidden');
+        });
+        legendProm.appendChild(item);
     });
 })();
 
@@ -957,10 +1126,9 @@ function renderModalVendedor(data) {
             <table>
                 <thead>
                     <tr>
-                        <th>N° PEDIDO</th>
+                        <th style="width: 140px;">N° PEDIDO</th>
                         <th>FECHA</th>
                         <th>CLIENTE</th>
-                        <th class="r">TOTAL (BS)</th>
                         <th class="r">TOTAL (USD)</th>
                         <th class="c">ESTATUS</th>
                     </tr>
@@ -976,7 +1144,6 @@ function renderModalVendedor(data) {
                     <div class="fw-700">${r.cliente}</div>
                     <div class="text-muted-sm">${r.cod_cli}</div>
                 </td>
-                <td class="r fw-700">${fmtCur(r.total_bs)}</td>
                 <td class="r amount-usd">${fmtUSD2(r.total_usd)}</td>
                 <td class="c">${estBadge(r.estatus)}</td>
             </tr>`;
@@ -986,7 +1153,6 @@ function renderModalVendedor(data) {
                 <tfoot>
                     <tr>
                         <td colspan="3" class="text-right">TOTAL:</td>
-                        <td class="r total-amount">${fmtCur(totBS)}</td>
                         <td class="r total-usd">${fmtUSD2(totUSD)}</td>
                         <td></td>
                     </tr>
@@ -1101,11 +1267,10 @@ function renderModalUsuario(codUsr, data) {
             <table>
                 <thead>
                     <tr>
-                        <th>N° PEDIDO</th>
+                        <th style="width: 130px;">N° PEDIDO</th>
                         <th>FECHA</th>
                         <th>CLIENTE</th>
                         <th>VENDEDOR ASIGNADO</th>
-                        <th class="r">TOTAL (BS)</th>
                         <th class="r">TOTAL (USD)</th>
                         <th class="c">ESTATUS</th>
                     </tr>
@@ -1125,7 +1290,6 @@ function renderModalUsuario(codUsr, data) {
                     <div class="fw-600">${r.nombre_vend ?? '—'}</div>
                     <div class="text-muted-sm">Cód. ${r.codvend ?? '—'}</div>
                 </td>
-                <td class="r fw-700">${fmtCur(r.total_bs)}</td>
                 <td class="r amount-usd">${fmtUSD2(r.total_usd)}</td>
                 <td class="c">${estBadge(r.estatus)}</td>
             </tr>`;
@@ -1135,7 +1299,6 @@ function renderModalUsuario(codUsr, data) {
                 <tfoot>
                     <tr>
                         <td colspan="4" class="text-right">TOTAL (${p.length} pedidos):</td>
-                        <td class="r total-amount">${fmtCur(totBS)}</td>
                         <td class="r total-usd">${fmtUSD2(totUSD)}</td>
                         <td></td>
                     </tr>

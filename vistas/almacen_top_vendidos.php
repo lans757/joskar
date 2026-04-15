@@ -92,7 +92,7 @@ include('../includes/sidebar.php');
 ?>
 
 <main class="main-content">
-    <div class="content-wrapper">
+    <div class="content-wrapper animate-in">
         
         <!-- Navegación -->
         <nav class="module-nav">
@@ -134,7 +134,7 @@ include('../includes/sidebar.php');
                     <select name="codprov">
                         <option value="">TODOS LOS PROVEEDORES</option>
                         <?php foreach($proveedores as $p): ?>
-                            <option value="<?php echo $p['proveed']; ?>" <?php echo ($f_prov == $p['proveed'] ? 'selected' : ''; ?>>
+                            <option value="<?php echo $p['proveed']; ?>" <?php echo ($f_prov == $p['proveed'] ? 'selected' : ''); ?>>
                                 <?php echo htmlspecialchars($p['nombre']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -175,7 +175,7 @@ include('../includes/sidebar.php');
                     <div class="stat-value" style="color:var(--primary);">
                         <?php 
                             $total_usd = array_sum(array_column($productos, 'total_usd'));
-                            echo '$ ' . number_format($total_usd, 2, ',', '.');
+                            echo '$ ' . number_format($total_usd, 2, '.', ',');
                         ?>
                     </div>
                 </div>
@@ -191,7 +191,7 @@ include('../includes/sidebar.php');
             <div class="t-header">
                 <h2><i class="fas fa-sort-amount-down"></i> Ranking de Artículos Vendidos</h2>
                 <button class="btn-neon btn-green" onclick="exportXls('table-top', 'Top_Vendidos')" style="height:32px; font-size:0.75rem; padding: 0 15px;">
-                    <i class="fas fa-file-excel"></i> Excel
+                    <i class="fas fa-file-excel"></i> EXCEL
                 </button>
             </div>
             <div class="table-responsive">
@@ -203,7 +203,6 @@ include('../includes/sidebar.php');
                             <th>DESCRIPCIÓN</th>
                             <th>PROVEEDOR</th>
                             <th class="text-center">UNIDADES</th>
-                            <th class="text-right">VENTA BS.</th>
                             <th class="text-right">VENTA $</th>
                         </tr>
                     </thead>
@@ -218,8 +217,7 @@ include('../includes/sidebar.php');
                                     <td style="font-weight:500; font-size:0.85rem;"><?php echo htmlspecialchars($p['descripcion']); ?></td>
                                     <td style="font-size:0.75rem; opacity:0.8;"><?php echo htmlspecialchars($p['proveedor']); ?></td>
                                     <td class="text-center" style="font-weight:800; color:var(--accent-cyan);"><?php echo number_format($p['cantidad'], 0, ',', '.'); ?></td>
-                                    <td class="text-right"><?php echo number_format($p['total_bs'], 2, ',', '.'); ?></td>
-                                    <td class="text-right" style="font-weight:700; color:var(--primary);"><?php echo '$ ' . number_format($p['total_usd'], 2, ',', '.'); ?></td>
+                                    <td class="text-right" style="font-weight:700; color:var(--primary);"><?php echo '$ ' . number_format($p['total_usd'], 2, '.', ','); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

@@ -43,6 +43,11 @@ if (!isset($activePage)) $activePage = "dashboard";
                 <i class="fas fa-chart-line"></i> Indicadores Gerencia
             </a>
         </li>
+        <li>
+            <a href="<?php echo $path_prefix; ?>reportes/vistas/vista_marketing.php" class="<?php echo ($activePage == 'marketing' ? 'active' : ''); ?>">
+                <i class="fas fa-tags"></i> Monitor de Marketing
+            </a>
+        </li>
         
         <!-- Add a logout option if it makes sense -->
         <li style="margin-top: auto;">

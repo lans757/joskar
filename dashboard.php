@@ -50,6 +50,10 @@ try {
     // 7. Compras - Mantenemos valor demo por ahora
     $compras_pendientes = 3;
 
+    // 8. Marketing - Facturas con descuento (descu1, descu2, descu3, descu4 o descu > 0)
+    $stmt_mkt = $pdo->query("SELECT COUNT(DISTINCT numa) FROM sitems WHERE descu1 > 0 OR descu2 > 0 OR descu3 > 0 OR descu4 > 0 OR descu > 0");
+    $marketing_promos = (int)$stmt_mkt->fetchColumn();
+
 } catch (PDOException $e) {
     // En caso de error, mantener valores por defecto o 0
 }
@@ -146,6 +150,22 @@ try {
                         <div class="status-dot" style="background: #a855f7; box-shadow: 0 0 10px #a855f7;"></div> <?php echo number_format($gerencia_ventas, 0, ',', '.'); ?> Facturas (30d)
                     <?php else: ?>
                         <div class="status-dot"></div> Sin ventas recientes
+                    <?php endif; ?>
+                </div>
+            </a>
+
+            <!-- Marketing -->
+            <a href="reportes/vistas/vista_marketing.php" class="card dept-card">
+                <div>
+                    <div class="dept-icon" style="color: var(--accent-cyan);"><i class="fas fa-tags"></i></div>
+                    <h3>Marketing</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Análisis de descuentos y promociones aplicadas.</p>
+                </div>
+                <div class="dept-status">
+                    <?php if ($marketing_promos > 0): ?>
+                        <div class="status-dot" style="background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan);"></div> <?php echo number_format($marketing_promos, 0, ',', '.'); ?> Promociones activas
+                    <?php else: ?>
+                        <div class="status-dot"></div> Sin promociones detectadas
                     <?php endif; ?>
                 </div>
             </a>

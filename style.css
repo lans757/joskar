@@ -4,26 +4,26 @@
 
 /* ── CSS Variables ─────────────────────────────────────────── */
 :root {
-    --bg-main: #0a0f1d;
-    --bg-card: #141c2f;
-    --bg-card-hover: #1a2440;
-    --bg-input: #1e293b;
-    --border: #2d3a4f;
-    --border-light: rgba(255, 255, 255, 0.08);
+    --bg-main: #060a16;
+    --bg-card: rgba(20, 28, 47, 0.7);
+    --bg-card-hover: rgba(26, 36, 64, 0.85);
+    --bg-input: #151d30;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(0, 180, 255, 0.4);
     --primary: #00b4ff;
     --primary-alt: #0088cc;
-    --primary-glow: rgba(0, 180, 255, 0.3);
+    --primary-glow: rgba(0, 180, 255, 0.4);
+    --accent-green: #00e676;
+    --accent-green-glow: rgba(0, 230, 118, 0.3);
     --accent-red: #ff5252;
     --accent-yellow: #ffc107;
-    --accent-green: #00e676;
-    --accent-orange: #ff8c00;
-    --text-main: #f1f5f9;
+    --accent-cyan: #00f2ff;
+    --text-main: #f8fafc;
     --text-muted: #94a3b8;
-    --radius-lg: 16px;
+    --radius-lg: 20px;
     --radius-md: 12px;
     --radius-sm: 8px;
-    --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-    --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+    --shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.6), 0 10px 15px -10px rgba(0, 0, 0, 0.5);
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -50,14 +50,19 @@ body.login-bg {
     overflow: hidden;
 }
 
-@-webkit-keyframes fadeIn {
-    from { opacity: 0; -webkit-transform: translateY(10px); transform: translateY(10px); }
+@-webkit-keyframes fadeInUp {
+    from { opacity: 0; -webkit-transform: translateY(20px); transform: translateY(20px); }
     to { opacity: 1; -webkit-transform: translateY(0); transform: translateY(0); }
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+    -webkit-animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -436,22 +441,35 @@ h1, h2, h3, h4, h5, h6 {
    CARDS
    ═══════════════════════════════════════════════════════════════ */
 .card {
-    background: rgba(20, 28, 47, 0.7);
+    background: var(--bg-card);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border);
     padding: 24px;
     box-shadow: var(--shadow);
     -webkit-transition: var(--transition);
     transition: var(--transition);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(15px);
+    backdrop-filter: blur(15px);
+    position: relative;
+    overflow: hidden;
 }
 
 .card:hover {
-    border-color: rgba(0, 180, 255, 0.3);
-    -webkit-transform: translateY(-4px);
-    transform: translateY(-4px);
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+    border-color: var(--border-hover);
+    -webkit-transform: translateY(-8px) scale(1.01);
+    transform: translateY(-8px) scale(1.01);
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
+    background: var(--bg-card-hover);
+}
+
+.card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -748,8 +766,51 @@ h1, h2, h3, h4, h5, h6 {
 .filter-group input:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 4px var(--primary-glow), 0 0 15px var(--primary-glow);
-    background-color: #26334d;
+    background-color: #1a2440;
+    -webkit-transform: translateY(-1px);
     transform: translateY(-1px);
+}
+
+.premium-badge {
+    padding: 6px 14px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: -webkit-inline-flex;
+    display: inline-flex;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-gap: 8px;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    -webkit-transition: var(--transition);
+    transition: var(--transition);
+}
+
+.premium-badge i { font-size: 0.9rem; }
+
+.badge-primary {
+    background: rgba(0, 180, 255, 0.12);
+    color: var(--primary);
+    border-color: rgba(0, 180, 255, 0.3);
+    box-shadow: 0 0 15px rgba(0, 180, 255, 0.1);
+}
+
+.badge-success {
+    background: rgba(0, 230, 118, 0.12);
+    color: var(--accent-green);
+    border-color: rgba(0, 230, 118, 0.3);
+    box-shadow: 0 0 15px rgba(0, 230, 118, 0.1);
+}
+
+.badge-warning {
+    background: rgba(255, 193, 7, 0.12);
+    color: var(--accent-yellow);
+    border-color: rgba(255, 193, 7, 0.3);
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.1);
 }
 
 /* ── Autofill Fix ─────────────────────────────────────────── */
@@ -2566,6 +2627,23 @@ tr.cob-row-hidden {
     background: #00cfff;
     transform: translateY(-2px);
     box-shadow: 0 6px 18px rgba(0, 180, 255, 0.35);
+}
+
+.tv-controls-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.tv-period-minimal {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.8;
 }
 
 /* --- HERO KPI card --- */

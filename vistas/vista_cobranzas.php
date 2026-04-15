@@ -139,27 +139,22 @@ try {
 
 function renderBancoBadge($n) {
     $n = trim($n);
-    if (empty($n) || $n==='EFECTIVO') return "<span class='pill-banco' style='background:rgba(0,230,118,0.1); color:var(--accent-green); border:1px solid rgba(0,230,118,0.2);'>EFECTIVO</span>";
-    $l=strtolower($n);
-    $style = "background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid var(--border);";
-    if (str_contains($l,'banesco')) $style = "background:rgba(0,180,255,0.1); color:var(--primary); border:1px solid rgba(0,180,255,0.2);";
-    elseif (str_contains($l,'provincial')) $style = "background:rgba(37,99,235,0.1); color:#60a5fa; border:1px solid rgba(37,99,235,0.2);";
-    elseif (str_contains($l,'multipago')||str_contains($l,'caja')) $style = "background:rgba(255,193,7,0.1); color:var(--accent-yellow); border:1px solid rgba(255,193,7,0.2);";
-    return "<span class='pill-banco' style='$style'>".htmlspecialchars($n)."</span>";
+    if (empty($n) || $n==='EFECTIVO') return "<span class='premium-badge badge-success'><i class='fas fa-money-bill-wave'></i> EFECTIVO</span>";
+    return "<span class='premium-badge badge-primary'><i class='fas fa-university'></i> ".htmlspecialchars($n)."</span>";
 }
 function renderEstatus($e) {
     $e=strtoupper(trim($e??''));
-    if($e==='C') return "<span class='badge badge-ok'><i class='fas fa-check-circle'></i> CONFIRMADA</span>";
-    if($e==='P') return "<span class='badge badge-low'><i class='fas fa-clock'></i> PENDIENTE</span>";
-    if($e==='X') return "<span class='badge badge-critical'><i class='fas fa-times-circle'></i> ANULADA</span>";
-    return "<span class='badge' style='background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid var(--border);'>$e</span>";
+    if($e==='C') return "<span class='premium-badge badge-success'><i class='fas fa-check-circle'></i> CONFIRMADA</span>";
+    if($e==='P') return "<span class='premium-badge badge-warning'><i class='fas fa-clock'></i> PENDIENTE</span>";
+    if($e==='X') return "<span class='premium-badge' style='background:rgba(255,82,82,0.1); color:var(--accent-red); border-color:rgba(255,82,82,0.2);'><i class='fas fa-times-circle'></i> ANULADA</span>";
+    return "<span class='premium-badge'>$e</span>";
 }
 ?>
 
 
 
 <main class="main-content">
-<div class="content-wrapper">
+<div class="content-wrapper animate-in">
 
     <!-- HEADER -->
     <div class="page-title">
@@ -179,10 +174,10 @@ function renderEstatus($e) {
             </div>
         </div>
         <div class="card metric-card primary">
-            <div class="metric-icon"><i class="fas fa-money-bill-wave"></i></div>
+            <div class="metric-icon"><i class="fas fa-chart-line"></i></div>
             <div class="metric-content">
-                <span class="metric-label">Recaudado (BS)</span>
-                <p class="metric-value">Bs. <?php echo number_format($total_bs,2,',','.'); ?></p>
+                <span class="metric-label">Monto Promedio (USD)</span>
+                <p class="metric-value">$ <?php echo number_format(($total_ops > 0 ? $total_usd / $total_ops : 0), 2, '.', ','); ?></p>
             </div>
         </div>
         <div class="card metric-card success">
@@ -225,7 +220,7 @@ function renderEstatus($e) {
                 <div class="sw">
                     <input type="text" name="f_txt" value="<?php echo htmlspecialchars($f_txt);?>" 
                            placeholder="Ej: Farmacia Tariba, 177465, FC00037919…">
-                    <button type="submit" class="btn-neon btn-cyan">
+                    <button type="submit" class="btn-neon btn-cyan" style="box-shadow: 0 0 20px var(--primary-glow);">
                         <i class="fas fa-sync-alt"></i> ACTUALIZAR
                     </button>
                 </div>
@@ -245,7 +240,6 @@ function renderEstatus($e) {
                         <th>BANCO / MÉTODO</th>
                         <th>FORMA</th>
                         <th class="c">OPERACIONES</th>
-                        <th class="r">TOTAL (BS)</th>
                         <th class="r">TOTAL (EST. USD)</th>
                     </tr>
                 </thead>
@@ -255,7 +249,6 @@ function renderEstatus($e) {
                         <td><?php echo renderBancoBadge($c['banco_pago']); ?></td>
                         <td><span class="code-badge"><?php echo htmlspecialchars($c['tipo_pago']);?></span></td>
                         <td class="c"><strong><?php echo $c['ops'];?></strong></td>
-                        <td class="r" style="color:var(--text-main); font-weight:700;">Bs. <?php echo number_format($c['total_bs'],2,',','.');?></td>
                         <td class="r" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($c['total_usd'],2,'.',',');?></td>
                     </tr>
                 <?php endforeach; ?>
@@ -271,7 +264,7 @@ function renderEstatus($e) {
             <div class="rng">
                 Mostrando del <?php echo $offset+1; ?> al <?php echo min($offset+$limit, $total_ops); ?> de <strong><?php echo $total_ops; ?></strong>
                 <button class="btn-neon btn-green" onclick="exportXls('table-audit','Detalle_SMOV')" style="margin-left:15px; height: 38px; font-size: 0.75rem; padding: 0 15px;">
-                    <i class="fas fa-file-excel"></i> Exportar XLS
+                    <i class="fas fa-file-excel"></i> EXCEL
                 </button>
             </div>
         </div>
@@ -285,7 +278,6 @@ function renderEstatus($e) {
                         <th>FEC. BANCO</th>
                         <th>CLIENTE / PAGADOR</th>
                         <th>BANCO / MÉTODO</th>
-                        <th class="r">MONTO (BS)</th>
                         <th class="r">MONTO (USD)</th>
                         <th class="c">ESTATUS</th>
                     </tr>
@@ -306,7 +298,6 @@ function renderEstatus($e) {
                                 <div style="font-size:0.75rem; color:var(--text-muted);"><?php echo $r['cod_cli'];?> &bull; <?php echo htmlspecialchars($r['descrip']??'');?></div>
                             </td>
                             <td><?php echo renderBancoBadge($r['banco']); ?></td>
-                            <td class="r" style="font-weight:700;">Bs. <?php echo number_format($r['monto_bs'], 2, ',', '.'); ?></td>
                             <td class="r" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($r['monto_usd'], 2, '.', ','); ?></td>
                             <td class="c"><?php echo renderEstatus($r['estatus']??'');?></td>
                         </tr>
@@ -320,7 +311,6 @@ function renderEstatus($e) {
                     ?>
                     <tr>
                         <td colspan="5" class="text-right" style="opacity:0.7;"><i class="fas fa-sigma"></i> SUBTOTAL PÁGINA (<?php echo count($movimientos);?> ops)</td>
-                        <td class="r" style="font-weight:800;">Bs. <?php echo number_format($page_bs,2,',','.');?></td>
                         <td class="r" style="font-weight:800; color:var(--accent-green);">$ <?php echo number_format($page_usd,2,'.',',');?></td>
                         <td></td>
                     </tr>
@@ -475,7 +465,6 @@ function renderModalDetail(data) {
                     <tr>
                         <th>N° FACTURA</th>
                         <th>FECHA</th>
-                        <th class="r">TOTAL (BS)</th>
                         <th class="r">USD</th>
                         <th class="c">ESTATUS</th>
                     </tr>
@@ -484,14 +473,12 @@ function renderModalDetail(data) {
         
         let totB = 0, totD = 0;
         f.forEach(fac => {
-            totB += parseFloat(fac.total_bs);
             totD += parseFloat(fac.total_usd);
             html += `
                 <tr>
                     <td><span class="code-badge">${fac.factura}</span></td>
                     <td>${fmtFec(fac.fecha_fac)}</td>
-                    <td class="r" style="font-weight:700;">${fmtCur(fac.total_bs,'')}</td>
-                    <td class="r" style="color:var(--accent-green);">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(fac.total_usd)}</td>
+                    <td class="r" style="color:var(--accent-green); font-weight:700;">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(fac.total_usd)}</td>
                     <td class="c">${estBadge(fac.estatus_fac)}</td>
                 </tr>`;
         });
@@ -500,7 +487,6 @@ function renderModalDetail(data) {
                 <tfoot>
                     <tr>
                         <td colspan="2" class="text-right">TOTAL RELACIONADO:</td>
-                        <td class="r">${fmtCur(totB,'')}</td>
                         <td class="r">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(totD)}</td>
                         <td></td>
                     </tr>
