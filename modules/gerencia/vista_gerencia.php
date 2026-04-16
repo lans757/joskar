@@ -1,16 +1,17 @@
 <?php
-$pageTitle = "ProteoERP | Compras";
-$activePage = "compras";
-$path_prefix = "../";
+$pageTitle = "ProteoERP | Gerencia";
+$activePage = "gerencia";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 ?>
 <main class="main-content">
+    <?php include("../../includes/navbar.php"); ?>
     <div class="content-wrapper">
         <div class="page-title">
-            <h1>Indicadores Compras</h1>
-            <p>Módulo de monitoreo para el departamento de Compras.</p>
+            <h1>Indicadores Gerencia</h1>
+            <p>Módulo de monitoreo para el departamento de Gerencia.</p>
         </div>
         
         <div class="card" style="padding: 40px; text-align: center; color: var(--text-muted);">
@@ -21,5 +22,5 @@ include('../includes/sidebar.php');
     </div>
 </main>
 <?php
-include('../includes/footer.php');
+include('../../includes/footer.php');
 ?>

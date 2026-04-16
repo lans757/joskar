@@ -7,7 +7,7 @@
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 // --- Manejo AJAX: Detalle de pedidos por vendedor ---
 // DEBE IR AL PRINCIPIO PARA EVITAR SALIDA HTML EN LA RESPUESTA JSON
@@ -65,10 +65,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle_vendedor') {
 // ============================================================
 $pageTitle  = "ProteoERP | Monitor de Televentas";
 $activePage = "televentas";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // --- Filtros de búsqueda ---
 $f_ini  = $_GET['f_ini']  ?? date('Y-m-01');
@@ -244,6 +244,7 @@ $grafico = prepararDatosGrafico($ranking);
      CONTENIDO PRINCIPAL
      ============================================================ -->
 <main class="main-content">
+    <?php include("../../includes/navbar.php"); ?>
 <div class="content-wrapper">
 
     <!-- CABECERA DE PÁGINA -->
@@ -858,6 +859,6 @@ modal.addEventListener('click', (e) => {
 });
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>
 </body>
 </html>

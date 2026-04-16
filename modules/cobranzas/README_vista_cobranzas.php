@@ -9,6 +9,7 @@
  *    - header.php  → <html>, <head>, <body>, .app-container
  *    - sidebar.php → <aside class="sidebar">
  *    - [este archivo] → <main class="main-content">
+    <?php include("../../includes/navbar.php"); ?>
  *    - footer.php  → cierre de .app-container, scripts globales
  *
  *  ESTILOS: heredan de /noti_pro/style.css.
@@ -26,10 +27,10 @@
  * ──────────────────────────────────────────────────────────── */
 $pageTitle   = "ProteoERP | Gestión de Cobranzas";
 $activePage  = "cobranzas";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // 1.1 CONEXIÓN A BASE DE DATOS REAL (PARA MÉTODOS DE PAGO)
 require_once '../includes/db.php';
@@ -186,6 +187,7 @@ function getStatusBadge(string $estatus): array {
      5. CONTENIDO PRINCIPAL DEL MÓDULO
      ════════════════════════════════════════════════════════════ -->
 <main class="main-content">
+    <?php include("../../includes/navbar.php"); ?>
     <div class="content-wrapper">
 
         <!-- ─── 5.1 TÍTULO DE PÁGINA ──────────────────────────── -->
@@ -814,5 +816,5 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 SCRIPTS;
 
-include('../includes/footer.php');
+include('../../includes/footer.php');
 ?>

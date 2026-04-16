@@ -9,10 +9,10 @@
 
 $pageTitle   = "ProteoERP | Cuadre de Caja";
 $activePage  = "cobranzas";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 require_once '../includes/db.php';
 
 // 1. CAPTURA DE FILTROS Y PAGINACIÓN
@@ -131,6 +131,7 @@ function renderBancoBadge($nombre, $tipo = '', $monto_bs = 0, $monto_usd = 0) {
 
 
 <main class="main-content">
+    <?php include("../../includes/navbar.php"); ?>
     <div class="content-wrapper">
         <div class="page-title">
                 <h1>Cuadre de Caja</h1>
@@ -335,4 +336,4 @@ function exportToExcel() {
 }
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>

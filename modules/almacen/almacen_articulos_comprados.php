@@ -6,7 +6,7 @@
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 // --- Manejo AJAX: Gráfico Proveedor ---
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
@@ -123,10 +123,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'filtrar') {
 $pageTitle   = "ProteoERP | Artículos Comprados";
 $activePage  = "almacen";
 $activeSubPage = "articulos_comprados";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // --- Filtros ---
 $f_ini = $_GET['f_ini'] ?? date('Y-01-01');
@@ -264,6 +264,7 @@ if (!function_exists('formatUSD')) {
 
 
 <main class="main-content">
+    <?php include("../../includes/navbar.php"); ?>
 <div class="content-wrapper">
 
     <!-- Navegación de Módulo -->
@@ -840,5 +841,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <?php 
-include('../includes/footer.php'); 
+include('../../includes/footer.php'); 
 ?>

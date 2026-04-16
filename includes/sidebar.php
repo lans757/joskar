@@ -14,37 +14,37 @@ if (!isset($activePage)) $activePage = "dashboard";
         </li>
         <hr style="border: none; border-top: 1px solid var(--border-light); margin: 10px 0;">
         <li>
-            <a href="<?php echo $path_prefix; ?>vistas/vista_almacen.php" class="<?php echo ($activePage == 'almacen' ? 'active' : ''); ?>">
+            <a href="<?php echo $path_prefix; ?>modules/almacen/vista_almacen.php" class="<?php echo ($activePage == 'almacen' ? 'active' : ''); ?>">
                 <i class="fas fa-warehouse"></i> Indicadores Almacén
             </a>
         </li>
         <li>
-            <a href="<?php echo $path_prefix; ?>vistas/vista_televentas.php" class="<?php echo ($activePage == 'televentas' ? 'active' : ''); ?>">
+            <a href="<?php echo $path_prefix; ?>modules/televentas/vista_televentas.php" class="<?php echo ($activePage == 'televentas' ? 'active' : ''); ?>">
                 <i class="fas fa-headset"></i> Indicadores Televentas
             </a>
         </li>
         <li>
-            <a href="<?php echo $path_prefix; ?>vistas/vista_compras.php" class="<?php echo ($activePage == 'compras' ? 'active' : ''); ?>">
+            <a href="<?php echo $path_prefix; ?>modules/compras/vista_compras.php" class="<?php echo ($activePage == 'compras' ? 'active' : ''); ?>">
                 <i class="fas fa-shopping-cart"></i> Indicadores Compras
             </a>
         </li>
         <li>
-            <a href="<?php echo $path_prefix; ?>vistas/vista_administracion.php" class="<?php echo ($activePage == 'administracion' ? 'active' : ''); ?>">
+            <a href="<?php echo $path_prefix; ?>modules/administracion/vista_administracion.php" class="<?php echo ($activePage == 'administracion' ? 'active' : ''); ?>">
                 <i class="fas fa-building"></i> Indicadores Administración
             </a>
         </li>
         <li>
-            <a href="<?php echo $path_prefix; ?>vistas/vista_cobranzas.php" class="<?php echo ($activePage == 'cobranzas' ? 'active' : ''); ?>">
+            <a href="<?php echo $path_prefix; ?>modules/cobranzas/vista_cobranzas.php" class="<?php echo ($activePage == 'cobranzas' ? 'active' : ''); ?>">
                 <i class="fas fa-hand-holding-usd"></i> Indicadores Cobranzas
             </a>
         </li>
         <li>
-            <a href="<?php echo $path_prefix; ?>vistas/vista_gerencia.php" class="<?php echo ($activePage == 'gerencia' ? 'active' : ''); ?>">
+            <a href="<?php echo $path_prefix; ?>modules/gerencia/vista_gerencia.php" class="<?php echo ($activePage == 'gerencia' ? 'active' : ''); ?>">
                 <i class="fas fa-chart-line"></i> Indicadores Gerencia
             </a>
         </li>
         <li>
-            <a href="<?php echo $path_prefix; ?>reportes/vistas/vista_marketing.php" class="<?php echo ($activePage == 'marketing' ? 'active' : ''); ?>">
+            <a href="<?php echo $path_prefix; ?>modules/marketing/vista_marketing.php" class="<?php echo ($activePage == 'marketing' ? 'active' : ''); ?>">
                 <i class="fas fa-tags"></i> Monitor de Marketing
             </a>
         </li>

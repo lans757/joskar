@@ -60,6 +60,7 @@ try {
 ?>
 
 <main class='main-content'>
+    <?php include('includes/navbar.php'); ?>
     <div class="content-wrapper">
         <div class="page-title">
             <h1>Módulos de Gestión</h1>
@@ -68,7 +69,7 @@ try {
 
         <div class="warehouse-grid">
             <!-- Televentas -->
-            <a href="vistas/vista_televentas.php" class="card dept-card">
+            <a href="modules/televentas/vista_televentas.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-green);"><i class="fas fa-headset"></i></div>
                     <h3>Televentas</h3>
@@ -84,7 +85,7 @@ try {
             </a>
 
             <!-- Compras -->
-            <a href="vistas/vista_compras.php" class="card dept-card">
+            <a href="modules/compras/vista_compras.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-yellow);"><i class="fas fa-shopping-basket"></i></div>
                     <h3>Compras</h3>
@@ -96,7 +97,7 @@ try {
             </a>
 
             <!-- Administración -->
-            <a href="vistas/vista_administracion.php" class="card dept-card">
+            <a href="modules/administracion/vista_administracion.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--primary);"><i class="fas fa-landmark"></i></div>
                     <h3>Administración</h3>
@@ -108,7 +109,7 @@ try {
             </a>
 
             <!-- Cobranzas -->
-            <a href="vistas/vista_cobranzas.php" class="card dept-card">
+            <a href="modules/cobranzas/vista_cobranzas.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-red);"><i class="fas fa-coins"></i></div>
                     <h3>Cobranzas</h3>
@@ -124,7 +125,7 @@ try {
             </a>
 
             <!-- Almacén -->
-            <a href="vistas/vista_almacen.php" class="card dept-card">
+            <a href="modules/almacen/vista_almacen.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-orange);"><i class="fas fa-warehouse"></i></div>
                     <h3>Almacén</h3>
@@ -139,7 +140,7 @@ try {
             </a>
 
             <!-- Gerencia -->
-            <a href="vistas/vista_gerencia.php" class="card dept-card">
+            <a href="modules/gerencia/vista_gerencia.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: #a855f7;"><i class="fas fa-chart-pie"></i></div>
                     <h3>Gerencia</h3>
@@ -155,7 +156,7 @@ try {
             </a>
 
             <!-- Marketing -->
-            <a href="reportes/vistas/vista_marketing.php" class="card dept-card">
+            <a href="modules/marketing/vista_marketing.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-cyan);"><i class="fas fa-tags"></i></div>
                     <h3>Marketing</h3>

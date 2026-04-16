@@ -18,6 +18,8 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    die("Error de conexión: " . $e->getMessage());
+    http_response_code(500);
+    include(dirname(__DIR__) . '/errors/500.php');
+    exit;
 }
 ?>

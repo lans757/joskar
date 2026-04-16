@@ -5,17 +5,17 @@
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 // ============================================================
 // CONFIGURACIÓN DE PÁGINA
 // ============================================================
 $pageTitle  = "ProteoERP | KPIs de Televentas";
 $activePage = "televentas";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // --- Filtros de búsqueda ---
 $f_ini      = $_GET['f_ini']      ?? date('Y-m-01');
@@ -84,6 +84,7 @@ foreach ($ranking_usuarios as $row) {
 ?>
 
 <main class="main-content">
+    <?php include("../../includes/navbar.php"); ?>
 <div class="content-wrapper">
 
     <!-- Navegación de Módulo -->
@@ -253,4 +254,4 @@ new Chart(ctx, {
 });
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>

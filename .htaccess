@@ -1,0 +1,2 @@
+ErrorDocument 404 /noti_pro/errors/404.php
+ErrorDocument 500 /noti_pro/errors/500.php

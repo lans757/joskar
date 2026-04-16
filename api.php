@@ -2,7 +2,7 @@
 session_start();
 header('Content-Type: application/json');
 
-
+include('includes/lan_check.php');
 include('includes/db.php');
 
 ini_set('display_errors', 0);

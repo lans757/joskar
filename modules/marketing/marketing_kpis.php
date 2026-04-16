@@ -150,6 +150,7 @@ include('../../includes/sidebar.php');
 ?>
 
 <main class="main-content">
+    <?php include("../../includes/navbar.php"); ?>
     <!-- Overlay de Carga -->
     <div id="loader-overlay">
         <div class="loader-content">
