@@ -230,7 +230,7 @@ function renderEstatus($e) {
             </div>
             <div class="filter-group grow">
                 <label>Buscar Cliente / Referencia</label>
-                <div class="sw">
+                <div class="input-switch-group">
                     <input type="text" name="f_txt" value="<?php echo htmlspecialchars($f_txt);?>" 
                            placeholder="Ej: Farmacia Tariba, 177465, FC00037919…">
                     <button type="submit" class="btn-neon btn-cyan" style="box-shadow: 0 0 20px var(--primary-glow);">
@@ -252,8 +252,8 @@ function renderEstatus($e) {
                     <tr>
                         <th>BANCO / MÉTODO</th>
                         <th>FORMA</th>
-                        <th class="c">OPERACIONES</th>
-                        <th class="r">TOTAL (EST. USD)</th>
+                        <th class="text-center">OPERACIONES</th>
+                        <th class="text-right">TOTAL (EST. USD)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -261,8 +261,8 @@ function renderEstatus($e) {
                     <tr>
                         <td><?php echo renderBancoBadge($c['banco_pago']); ?></td>
                         <td><span class="code-badge"><?php echo htmlspecialchars($c['tipo_pago']);?></span></td>
-                        <td class="c"><strong><?php echo $c['ops'];?></strong></td>
-                        <td class="r" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($c['total_usd'],2,'.',',');?></td>
+                        <td class="text-center"><strong><?php echo $c['ops'];?></strong></td>
+                        <td class="text-right" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($c['total_usd'],2,'.',',');?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -291,8 +291,8 @@ function renderEstatus($e) {
                         <th>FEC. BANCO</th>
                         <th>CLIENTE / PAGADOR</th>
                         <th>BANCO / MÉTODO</th>
-                        <th class="r">MONTO (USD)</th>
-                        <th class="c">ESTATUS</th>
+                        <th class="text-right">MONTO (USD)</th>
+                        <th class="text-center">ESTATUS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -311,8 +311,8 @@ function renderEstatus($e) {
                                 <div style="font-size:0.75rem; color:var(--text-muted);"><?php echo $r['cod_cli'];?> &bull; <?php echo htmlspecialchars($r['descrip']??'');?></div>
                             </td>
                             <td><?php echo renderBancoBadge($r['banco']); ?></td>
-                            <td class="r" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($r['monto_usd'], 2, '.', ','); ?></td>
-                            <td class="c"><?php echo renderEstatus($r['estatus']??'');?></td>
+                            <td class="text-right" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($r['monto_usd'], 2, '.', ','); ?></td>
+                            <td class="text-center"><?php echo renderEstatus($r['estatus']??'');?></td>
                         </tr>
                         <?php endforeach;?>
                     <?php endif; ?>
@@ -324,7 +324,7 @@ function renderEstatus($e) {
                     ?>
                     <tr>
                         <td colspan="5" class="text-right" style="opacity:0.7;"><i class="fas fa-sigma"></i> SUBTOTAL PÁGINA (<?php echo count($movimientos);?> ops)</td>
-                        <td class="r" style="font-weight:800; color:var(--accent-green);">$ <?php echo number_format($page_usd,2,'.',',');?></td>
+                        <td class="text-right" style="font-weight:800; color:var(--accent-green);">$ <?php echo number_format($page_usd,2,'.',',');?></td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -381,7 +381,7 @@ function renderEstatus($e) {
         <div class="modal-hd">
             <div>
                 <h3><i class="fas fa-file-invoice-dollar"></i> Detalle de Gestión de Auditoría</h3>
-                <div class="mref" id="modalRef">Cargando...</div>
+                <div class="modal-reference" id="modalRef">Cargando...</div>
             </div>
             <button class="modal-close" onclick="cerrarModal()" title="Cerrar">&times;</button>
         </div>
@@ -452,17 +452,17 @@ function renderModalDetail(data) {
 
     modalHD.innerHTML = `<div>
         <h3><i class="fas fa-file-invoice-dollar"></i> Gestión #${m.transac}</h3>
-        <div class="mref">${m.nombre} (${m.cod_cli}) &bull; ${fmtFec(m.fecha)}</div>
+        <div class="modal-reference">${m.nombre} (${m.cod_cli}) &bull; ${fmtFec(m.fecha)}</div>
     </div>`;
 
     let html = `
         <div class="modal-info-grid">
-            <div class="mic"><span class="lbl">Monto Pagado</span><span class="val gr">${fmtCur(m.monto_bs)}</span></div>
-            <div class="mic"><span class="lbl">Equivalente USD</span><span class="val bl">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(m.monto_usd)}</span></div>
-            <div class="mic"><span class="lbl">Forma de Pago</span><span class="val">${m.tipo_pago}</span></div>
-            <div class="mic"><span class="lbl">Banco / Destino</span><span class="val">${m.banco}</span></div>
-            <div class="mic"><span class="lbl"><i class="fas fa-calendar-check"></i> F. Banco</span><span class="val">${fmtFec(m.fecpag)}</span></div>
-            <div class="mic"><span class="lbl">Estatus</span><span class="val">${estBadge(m.estatus)}</span></div>
+            <div class="modal-info-card"><span class="info-label">Monto Pagado</span><span class="info-value text-success">${fmtCur(m.monto_bs)}</span></div>
+            <div class="modal-info-card"><span class="info-label">Equivalente USD</span><span class="info-value text-primary">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(m.monto_usd)}</span></div>
+            <div class="modal-info-card"><span class="info-label">Forma de Pago</span><span class="info-value">${m.tipo_pago}</span></div>
+            <div class="modal-info-card"><span class="info-label">Banco / Destino</span><span class="info-value">${m.banco}</span></div>
+            <div class="modal-info-card"><span class="info-label"><i class="fas fa-calendar-check"></i> F. Banco</span><span class="info-value">${fmtFec(m.fecpag)}</span></div>
+            <div class="modal-info-card"><span class="info-label">Estatus</span><span class="info-value">${estBadge(m.estatus)}</span></div>
         </div>
 
         <div class="modal-sec-ttl"><i class="fas fa-file-lines"></i> Facturas Afectadas / Relacionadas</div>
@@ -478,8 +478,8 @@ function renderModalDetail(data) {
                     <tr>
                         <th>N° FACTURA</th>
                         <th>FECHA</th>
-                        <th class="r">USD</th>
-                        <th class="c">ESTATUS</th>
+                        <th class="text-right">USD</th>
+                        <th class="text-center">ESTATUS</th>
                     </tr>
                 </thead>
                 <tbody>`;
@@ -491,8 +491,8 @@ function renderModalDetail(data) {
                 <tr>
                     <td><span class="code-badge">${fac.factura}</span></td>
                     <td>${fmtFec(fac.fecha_fac)}</td>
-                    <td class="r" style="color:var(--accent-green); font-weight:700;">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(fac.total_usd)}</td>
-                    <td class="c">${estBadge(fac.estatus_fac)}</td>
+                    <td class="text-right" style="color:var(--accent-green); font-weight:700;">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(fac.total_usd)}</td>
+                    <td class="text-center">${estBadge(fac.estatus_fac)}</td>
                 </tr>`;
         });
 
@@ -500,7 +500,7 @@ function renderModalDetail(data) {
                 <tfoot>
                     <tr>
                         <td colspan="2" class="text-right">TOTAL RELACIONADO:</td>
-                        <td class="r">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(totD)}</td>
+                        <td class="text-right">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(totD)}</td>
                         <td></td>
                     </tr>
                 </tfoot>

@@ -595,10 +595,10 @@ $grafico_usr = prepararDatosGrafico(
                 <table id="table-ranking">
                     <thead>
                         <tr>
-                            <th class="c">#</th>
+                            <th class="text-center">#</th>
                             <th>VENDEDOR</th>
-                            <th class="c">PEDIDOS</th>
-                            <th class="r">TOTAL USD</th>
+                            <th class="text-center">PEDIDOS</th>
+                            <th class="text-right">TOTAL USD</th>
                             <th>PART.</th>
                         </tr>
                     </thead>
@@ -616,13 +616,13 @@ $grafico_usr = prepararDatosGrafico(
                             $color    = $palette[$i % count($palette)];
                     ?>
                         <tr class="clickable" onclick="abrirModalVendedor('<?php echo htmlspecialchars($v['codvend']); ?>','<?php echo htmlspecialchars(addslashes($v['nombre_vend'])); ?>')">
-                            <td class="c"><span class="rank-num <?php echo $rankClass; ?>"><?php echo $rank; ?></span></td>
+                            <td class="text-center"><span class="rank-num <?php echo $rankClass; ?>"><?php echo $rank; ?></span></td>
                             <td>
                                 <div class="text-main-bold"><?php echo htmlspecialchars($v['nombre_vend']); ?></div>
                                 <div class="text-muted-sm">Cód. <?php echo htmlspecialchars($v['codvend']); ?></div>
                             </td>
                             <td class="c"><strong><?php echo $v['pedidos']; ?></strong></td>
-                            <td class="r amount-usd">$ <?php echo number_format($v['total_usd'], 2, '.', ','); ?></td>
+                            <td class="text-right amount-usd">$ <?php echo number_format($v['total_usd'], 2, '.', ','); ?></td>
                             <td class="min-w-150">
                                 <div class="progress-pct"><?php echo $pct; ?>%</div>
                                 <div class="progress-bar-wrap">
@@ -635,8 +635,8 @@ $grafico_usr = prepararDatosGrafico(
                     <tfoot>
                         <tr>
                             <td colspan="2" class="text-right opacity-70"><i class="fas fa-sigma"></i> TOTAL (<?php echo count($ranking); ?> vendedores)</td>
-                            <td class="c total-amount"><?php echo $total_pedidos; ?></td>
-                            <td class="r total-usd">$ <?php echo number_format($total_usd, 2, '.', ','); ?></td>
+                            <td class="text-center total-amount"><?php echo $total_pedidos; ?></td>
+                            <td class="text-right total-usd">$ <?php echo number_format($total_usd, 2, '.', ','); ?></td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -663,7 +663,7 @@ $grafico_usr = prepararDatosGrafico(
         <div class="modal-hd">
             <div>
                 <h3 id="modalTitulo"><i class="fas fa-user-tie"></i> Detalle de Vendedor</h3>
-                <div class="mref" id="modalRef">Cargando…</div>
+                <div class="modal-reference" id="modalRef">Cargando…</div>
             </div>
             <button class="modal-close" onclick="cerrarModal()" title="Cerrar">&times;</button>
         </div>
@@ -1104,21 +1104,21 @@ function renderModalVendedor(data) {
     let html = `
         <!-- KPIs resumen del vendedor -->
         <div class="modal-info-grid">
-            <div class="mic">
-                <span class="lbl">Total Vendido (BS)</span>
-                <span class="val gr">${fmtCur(totBS)}</span>
+            <div class="modal-info-card">
+                <span class="info-label">Total Vendido (BS)</span>
+                <span class="info-value text-success">${fmtCur(totBS)}</span>
             </div>
-            <div class="mic">
-                <span class="lbl">Total Vendido (USD)</span>
-                <span class="val bl">${fmtUSD2(totUSD)}</span>
+            <div class="modal-info-card">
+                <span class="info-label">Total Vendido (USD)</span>
+                <span class="info-value text-primary">${fmtUSD2(totUSD)}</span>
             </div>
-            <div class="mic">
-                <span class="lbl">Pedidos en período</span>
-                <span class="val">${p.length}</span>
+            <div class="modal-info-card">
+                <span class="info-label">Pedidos en período</span>
+                <span class="info-value">${p.length}</span>
             </div>
-            <div class="mic">
-                <span class="lbl">Teléfono</span>
-                <span class="val">${v.telefono || '—'}</span>
+            <div class="modal-info-card">
+                <span class="info-label">Teléfono</span>
+                <span class="info-value">${v.telefono || '—'}</span>
             </div>
         </div>
 
@@ -1136,8 +1136,8 @@ function renderModalVendedor(data) {
                         <th style="width: 140px;">N° PEDIDO</th>
                         <th>FECHA</th>
                         <th>CLIENTE</th>
-                        <th class="r">TOTAL (USD)</th>
-                        <th class="c">ESTATUS</th>
+                        <th class="text-right">TOTAL (USD)</th>
+                        <th class="text-center">ESTATUS</th>
                     </tr>
                 </thead>
                 <tbody>`;
@@ -1151,8 +1151,8 @@ function renderModalVendedor(data) {
                     <div class="fw-700">${r.cliente}</div>
                     <div class="text-muted-sm">${r.cod_cli}</div>
                 </td>
-                <td class="r amount-usd">${fmtUSD2(r.total_usd)}</td>
-                <td class="c">${estBadge(r.estatus)}</td>
+                <td class="text-right amount-usd">${fmtUSD2(r.total_usd)}</td>
+                <td class="text-center">${estBadge(r.estatus)}</td>
             </tr>`;
         });
 
@@ -1160,7 +1160,7 @@ function renderModalVendedor(data) {
                 <tfoot>
                     <tr>
                         <td colspan="3" class="text-right">TOTAL:</td>
-                        <td class="r total-usd">${fmtUSD2(totUSD)}</td>
+                        <td class="text-right total-usd">${fmtUSD2(totUSD)}</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -1245,21 +1245,21 @@ function renderModalUsuario(codUsr, data) {
 
     let html = `
         <div class="modal-info-grid">
-            <div class="mic">
-                <span class="lbl">Total Vendido (BS)</span>
-                <span class="val gr">${fmtCur(totBS)}</span>
+            <div class="modal-info-card">
+                <span class="info-label">Total Vendido (BS)</span>
+                <span class="info-value text-success">${fmtCur(totBS)}</span>
             </div>
-            <div class="mic">
-                <span class="lbl">Total Vendido (USD)</span>
-                <span class="val bl">${fmtUSD2(totUSD)}</span>
+            <div class="modal-info-card">
+                <span class="info-label">Total Vendido (USD)</span>
+                <span class="info-value text-primary">${fmtUSD2(totUSD)}</span>
             </div>
-            <div class="mic">
-                <span class="lbl">Pedidos registrados</span>
-                <span class="val">${totPed}</span>
+            <div class="modal-info-card">
+                <span class="info-label">Pedidos registrados</span>
+                <span class="info-value">${totPed}</span>
             </div>
-            <div class="mic">
-                <span class="lbl">Usuario / Operador</span>
-                <span class="val fs-095">${codUsr}</span>
+            <div class="modal-info-card">
+                <span class="info-label">Usuario / Operador</span>
+                <span class="info-value fs-095">${codUsr}</span>
             </div>
         </div>
         <div class="modal-sec-ttl">
@@ -1278,8 +1278,8 @@ function renderModalUsuario(codUsr, data) {
                         <th>FECHA</th>
                         <th>CLIENTE</th>
                         <th>VENDEDOR ASIGNADO</th>
-                        <th class="r">TOTAL (USD)</th>
-                        <th class="c">ESTATUS</th>
+                        <th class="text-right">TOTAL (USD)</th>
+                        <th class="text-center">ESTATUS</th>
                     </tr>
                 </thead>
                 <tbody>`;
@@ -1297,8 +1297,8 @@ function renderModalUsuario(codUsr, data) {
                     <div class="fw-600">${r.nombre_vend ?? '—'}</div>
                     <div class="text-muted-sm">Cód. ${r.codvend ?? '—'}</div>
                 </td>
-                <td class="r amount-usd">${fmtUSD2(r.total_usd)}</td>
-                <td class="c">${estBadge(r.estatus)}</td>
+                <td class="text-right amount-usd">${fmtUSD2(r.total_usd)}</td>
+                <td class="text-center">${estBadge(r.estatus)}</td>
             </tr>`;
         });
 
@@ -1306,7 +1306,7 @@ function renderModalUsuario(codUsr, data) {
                 <tfoot>
                     <tr>
                         <td colspan="4" class="text-right">TOTAL (${p.length} pedidos):</td>
-                        <td class="r total-usd">${fmtUSD2(totUSD)}</td>
+                        <td class="text-right total-usd">${fmtUSD2(totUSD)}</td>
                         <td></td>
                     </tr>
                 </tfoot>
