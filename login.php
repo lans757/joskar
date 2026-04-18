@@ -21,7 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $stmt = $pdo->prepare(
-            "SELECT us_codigo, us_nombre, supervisor, us_clave FROM usuario WHERE us_codigo = ?"
+            "SELECT us_codigo, us_nombre, supervisor, us_clave,
+                    COALESCE(us_activo, 1) AS us_activo
+             FROM usuario WHERE us_codigo = ?"
         );
         $stmt->execute([$user]);
         $userData = $stmt->fetch();
@@ -37,6 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $upd = $pdo->prepare("UPDATE usuario SET us_clave = ? WHERE us_codigo = ?");
                 $upd->execute([password_hash($pass, PASSWORD_BCRYPT), $user]);
             }
+        }
+
+        if ($valid && !$userData['us_activo']) {
+            header('Location: index.php?error=disabled');
+            exit;
         }
 
         if ($valid) {

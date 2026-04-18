@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n 'echo.*$mov\\\\|echo.*$vendedor\\\\|echo.*$pedidos' C:/xampp/htdocs/joskar/modules/televentas/vista_televentas.php)"
+    ]
+  }
+}

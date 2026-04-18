@@ -81,10 +81,16 @@ if (isset($_GET['ajax'])) {
             }
 
             if ($tipo_desc) {
-                if ($tipo_desc === 'descu') {
-                    $where .= " AND a.descuento > 0";
-                } else {
-                    $where .= " AND a.$tipo_desc > 0";
+                $allowed_cols = [
+                    'descu1' => 'descu1',
+                    'descu2' => 'descu2',
+                    'descu3' => 'descu3',
+                    'descu4' => 'descu4',
+                    'descu'  => 'descuento'
+                ];
+                if (isset($allowed_cols[$tipo_desc])) {
+                    $col = $allowed_cols[$tipo_desc];
+                    $where .= " AND a.$col > 0";
                 }
             }
 

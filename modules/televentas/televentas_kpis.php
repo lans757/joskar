@@ -35,7 +35,9 @@ try {
         "SELECT
              COUNT(DISTINCT f.numero)                                         AS total_pedidos,
              SUM(f.totalg)                                                    AS total_bs,
-             SUM(CASE WHEN f.dolar > 0 THEN ROUND(f.totalg / f.dolar, 2) ELSE 0 END) AS total_usd,
+             SUM(CASE WHEN f.dolar > 0 THEN ROUND(f.totalg / f.dolar, 2)
+                      WHEN f.totalg > 0 THEN f.totalg
+                      ELSE 0 END) AS total_usd,
              COUNT(DISTINCT f.usuario)                                        AS total_usuarios
          FROM pfac f
          $where"
@@ -57,7 +59,9 @@ try {
              COALESCE(NULLIF(u.us_nombre, ''), f.usuario)                          AS us_nombre,
              COUNT(DISTINCT f.numero)                                               AS pedidos,
              SUM(f.totalg)                                                          AS total_bs,
-             SUM(CASE WHEN f.dolar > 0 THEN ROUND(f.totalg / f.dolar, 2) ELSE 0 END) AS total_usd,
+             SUM(CASE WHEN f.dolar > 0 THEN ROUND(f.totalg / f.dolar, 2)
+                      WHEN f.totalg > 0 THEN f.totalg
+                      ELSE 0 END) AS total_usd,
              COUNT(DISTINCT f.vd)                                                   AS vendedores_atendidos
          FROM pfac f
          LEFT JOIN usuario u ON u.us_codigo = f.usuario
@@ -69,7 +73,10 @@ try {
     $ranking_usuarios = $stmt_rank->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    die("Error de base de datos (KPIs TELEVENTAS): [" . $e->getCode() . "]: " . $e->getMessage());
+    error_log('televentas_kpis error: ' . $e->getMessage());
+    http_response_code(500);
+    include '../../errors/500.php';
+    exit;
 }
 
 // Prepara datos para el gráfico
@@ -150,7 +157,7 @@ foreach ($ranking_usuarios as $row) {
         <div class="card metric-card info">
             <div class="metric-icon"><i class="fas fa-calculator"></i></div>
             <div class="metric-content">
-                <span class="metric-label">Tiket Promedio</span>
+                <span class="metric-label">Ticket Promedio</span>
                 <p class="metric-value">$ <?php echo ($total_pedidos > 0) ? number_format($total_usd / $total_pedidos, 2) : '0.00'; ?></p>
             </div>
         </div>
@@ -220,7 +227,6 @@ foreach ($ranking_usuarios as $row) {
 </main>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
 <script>
 function exportXls(tableId, name) {
@@ -230,27 +236,25 @@ function exportXls(tableId, name) {
     XLSX.writeFile(wb, name + '_' + new Date().toISOString().slice(0, 10) + '.xlsx');
 }
 
-const ctx = document.getElementById('chartUsuarios').getContext('2d');
-new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-        labels: <?php echo json_encode($labels); ?>,
-        datasets: [{
-            data: <?php echo json_encode($data_usd); ?>,
-            backgroundColor: <?php echo json_encode(array_slice($palette, 0, count($labels))); ?>,
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'right',
-                labels: { color: '#fff' }
+document.addEventListener('DOMContentLoaded', function() {
+    new Chart(document.getElementById('chartUsuarios'), {
+        type: 'doughnut',
+        data: {
+            labels: <?php echo json_encode($labels); ?>,
+            datasets: [{
+                data: <?php echo json_encode($data_usd); ?>,
+                backgroundColor: <?php echo json_encode(array_slice($palette, 0, count($labels))); ?>,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#fff' } }
             }
         }
-    }
+    });
 });
 </script>
 

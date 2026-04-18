@@ -25,10 +25,17 @@ require_once '../../includes/db.php';
 // DEBE IR AL PRINCIPIO PARA EVITAR SALIDA HTML EN LA RESPUESTA JSON
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle_vendedor') {
     $cod_vend = $_GET['cod_vend'] ?? '';
-    $f_ini    = $_GET['f_ini']    ?? date('Y-m-01');
+    $f_ini    = $_GET['f_ini']    ?? date('Y-01-01');
     $f_fin    = $_GET['f_fin']    ?? date('Y-m-d');
 
     header('Content-Type: application/json');
+
+    // Autorización: un usuario normal solo puede ver sus propios datos
+    if (empty($_SESSION['is_supervisor']) && $cod_vend !== $_SESSION['user_id']) {
+        http_response_code(403);
+        echo json_encode(['error' => 'No autorizado']);
+        exit;
+    }
     try {
         // Datos del vendedor
         $stmt_vend = $pdo->prepare(
@@ -77,10 +84,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle_vendedor') {
 // Devuelve los pedidos registrados por ese usuario con sus vendedores asociados.
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle_usuario') {
     $cod_usr = $_GET['cod_usr'] ?? '';
-    $f_ini   = $_GET['f_ini']   ?? date('Y-m-01');
+    $f_ini   = $_GET['f_ini']   ?? date('Y-01-01');
     $f_fin   = $_GET['f_fin']   ?? date('Y-m-d');
 
     header('Content-Type: application/json');
+
+    // Autorización: un usuario normal solo puede ver sus propios datos
+    if (empty($_SESSION['is_supervisor']) && $cod_usr !== $_SESSION['user_id']) {
+        http_response_code(403);
+        echo json_encode(['error' => 'No autorizado']);
+        exit;
+    }
     try {
         // KPIs rápidos del usuario en el período
         $stmt_kpi_usr = $pdo->prepare(
