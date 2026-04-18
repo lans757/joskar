@@ -6,18 +6,18 @@
  * ============================================================
  */
 
-require_once('../../includes/db.php');
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['logged_in'])) {
+    header('Location: ../../index.php');
+    exit;
+}
+
+require_once '../../includes/db.php';
 
 // --- FILTROS ---
 $f_ini   = $_GET['f_ini'] ?? date('Y-01-01');
 $f_fin   = $_GET['f_fin'] ?? date('Y-m-d');
 $codprov = $_GET['codprov'] ?? '';
-
-// Construir condición de proveedor
-$prov_cond   = !empty($codprov) ? "AND prvreg = '$codprov'" : "";
-$prov_cond_v  = !empty($codprov) ? "AND v.prvreg = '$codprov'" : "";
-$prov_cond_v2 = !empty($codprov) ? "AND v2.prvreg = '$codprov'" : "";
-$prov_cond_i  = !empty($codprov) ? "AND i.prvreg = '$codprov'" : "";
 
 // Fetch providers for select
 $stmt_provs = $pdo->query("SELECT proveed, nombre FROM sprv ORDER BY nombre ASC");
@@ -26,52 +26,42 @@ $proveedores = $stmt_provs->fetchAll(PDO::FETCH_ASSOC);
 // --- CÁLCULO DE KPIs ---
 
 // 1. Resumen de Inventario General
-$stmt_inv = $pdo->query("
-    SELECT 
-        COUNT(*) as total_items,
-        SUM(existen) as total_unidades,
-        SUM(existen * pondd) as valor_total_usd,
-        SUM(CASE WHEN existen <= 0 THEN 1 ELSE 0 END) as items_sin_stock,
-        SUM(CASE WHEN existen > 0 THEN 1 ELSE 0 END) as items_con_stock
-    FROM sinv
-    WHERE 1=1 $prov_cond
-");
+$inv_sql = "SELECT COUNT(*) as total_items, SUM(existen) as total_unidades,
+    SUM(existen * pondd) as valor_total_usd,
+    SUM(CASE WHEN existen <= 0 THEN 1 ELSE 0 END) as items_sin_stock,
+    SUM(CASE WHEN existen > 0 THEN 1 ELSE 0 END) as items_con_stock
+    FROM sinv WHERE 1=1";
+$inv_p = [];
+if ($codprov !== '') { $inv_sql .= " AND prvreg = ?"; $inv_p[] = $codprov; }
+$stmt_inv = $pdo->prepare($inv_sql);
+$stmt_inv->execute($inv_p);
 $inv_summary = $stmt_inv->fetch(PDO::FETCH_ASSOC);
 
-// 2. Compras del Periodo (Join con sinv para filtrar por proveedor si es necesario)
-// Si solo queremos compras de ESE proveedor:
-$stmt_compras = $pdo->prepare("
-    SELECT SUM(ctotald) FROM scst 
-    WHERE recep BETWEEN ? AND ? 
-    " . (!empty($codprov) ? "AND proveed = ?" : "") . "
-");
-if (!empty($codprov)) {
-    $stmt_compras->execute([$f_ini, $f_fin, $codprov]);
-} else {
-    $stmt_compras->execute([$f_ini, $f_fin]);
-}
+// 2. Compras del Periodo
+$comp_sql = "SELECT SUM(ctotald) FROM scst WHERE recep BETWEEN ? AND ?";
+$comp_p   = [$f_ini, $f_fin];
+if ($codprov !== '') { $comp_sql .= " AND proveed = ?"; $comp_p[] = $codprov; }
+$stmt_compras = $pdo->prepare($comp_sql);
+$stmt_compras->execute($comp_p);
 $compras_periodo = $stmt_compras->fetchColumn() ?: 0;
 
-// 3. Ventas del Periodo (itpfac joins sinv para proveedor)
-$stmt_ventas = $pdo->prepare("
-    SELECT SUM(i.totad) 
-    FROM itpfac i
+// 3. Ventas del Periodo
+$vent_sql = "SELECT SUM(i.totad) FROM itpfac i
     INNER JOIN sinv v ON i.codigoa = v.codigo
-    WHERE i.fecha BETWEEN ? AND ? 
-    $prov_cond_v
-");
-$stmt_ventas->execute([$f_ini, $f_fin]);
+    WHERE i.fecha BETWEEN ? AND ?";
+$vent_p = [$f_ini, $f_fin];
+if ($codprov !== '') { $vent_sql .= " AND v.prvreg = ?"; $vent_p[] = $codprov; }
+$stmt_ventas = $pdo->prepare($vent_sql);
+$stmt_ventas->execute($vent_p);
 $ventas_periodo = $stmt_ventas->fetchColumn() ?: 0;
 
 // 4. Concentración por Marca (Top 5 por Valor)
-$stmt_marcas_val = $pdo->query("
-    SELECT marca, SUM(existen * pondd) as valor 
-    FROM sinv 
-    WHERE existen > 0 $prov_cond
-    GROUP BY marca 
-    ORDER BY valor DESC 
-    LIMIT 5
-");
+$mval_sql = "SELECT marca, SUM(existen * pondd) as valor FROM sinv WHERE existen > 0";
+$mval_p   = [];
+if ($codprov !== '') { $mval_sql .= " AND prvreg = ?"; $mval_p[] = $codprov; }
+$mval_sql .= " GROUP BY marca ORDER BY valor DESC LIMIT 5";
+$stmt_marcas_val = $pdo->prepare($mval_sql);
+$stmt_marcas_val->execute($mval_p);
 $marcas_val = $stmt_marcas_val->fetchAll(PDO::FETCH_ASSOC);
 
 // Pre-calcular porcentajes para las etiquetas de la leyenda
@@ -82,67 +72,62 @@ $marcas_val_labels = array_map(function($m) use ($total_marcas_val) {
 }, $marcas_val);
 
 // 5. Rotación de Marcas (Top 30 por Ventas del Periodo)
-$stmt_marcas_rot = $pdo->prepare("
-    SELECT v.marca, SUM(i.cana) as unidades
-    FROM itpfac i
+$rot_sql = "SELECT v.marca, SUM(i.cana) as unidades FROM itpfac i
     INNER JOIN sinv v ON i.codigoa = v.codigo
-    WHERE i.fecha BETWEEN ? AND ? $prov_cond_v
-    GROUP BY v.marca
-    ORDER BY unidades DESC
-    LIMIT 30
-");
-$stmt_marcas_rot->execute([$f_ini, $f_fin]);
+    WHERE i.fecha BETWEEN ? AND ?";
+$rot_p = [$f_ini, $f_fin];
+if ($codprov !== '') { $rot_sql .= " AND v.prvreg = ?"; $rot_p[] = $codprov; }
+$rot_sql .= " GROUP BY v.marca ORDER BY unidades DESC LIMIT 30";
+$stmt_marcas_rot = $pdo->prepare($rot_sql);
+$stmt_marcas_rot->execute($rot_p);
 $marcas_rot = $stmt_marcas_rot->fetchAll(PDO::FETCH_ASSOC);
 
-$stmt_evol = $pdo->query("
-    SELECT 
-        DATE_FORMAT(i.fecha, '%Y-%m') as mes,
-        SUM(i.totad) as venta_usd
-    FROM itpfac i
-    INNER JOIN sinv v ON i.codigoa = v.codigo
-    WHERE i.fecha >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH) $prov_cond_v
-    GROUP BY mes
-    ORDER BY mes ASC
-");
+// 6. Evolución de Ventas (Últimos 6 meses)
+$evol_sql = "SELECT DATE_FORMAT(i.fecha, '%Y-%m') as mes, SUM(i.totad) as venta_usd
+    FROM itpfac i INNER JOIN sinv v ON i.codigoa = v.codigo
+    WHERE i.fecha >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)";
+$evol_p = [];
+if ($codprov !== '') { $evol_sql .= " AND v.prvreg = ?"; $evol_p[] = $codprov; }
+$evol_sql .= " GROUP BY mes ORDER BY mes ASC";
+$stmt_evol = $pdo->prepare($evol_sql);
+$stmt_evol->execute($evol_p);
 $evolucion = $stmt_evol->fetchAll(PDO::FETCH_ASSOC);
 
 // 7. Cuadro de Mando por Marca (Desglose Detallado)
-$stmt_mando = $pdo->prepare("
-    SELECT 
-        v.marca,
+$mando_inner = "SELECT v2.marca, SUM(i.cana) as unid, SUM(i.totad) as monto
+        FROM itpfac i INNER JOIN sinv v2 ON i.codigoa = v2.codigo
+        WHERE i.fecha BETWEEN :ini AND :fin"
+    . ($codprov !== '' ? " AND v2.prvreg = :prov2" : "")
+    . " GROUP BY v2.marca";
+
+$mando_sql = "SELECT v.marca,
         SUM(CASE WHEN v.existen > 0 THEN 1 ELSE 0 END) as items_ok,
         SUM(CASE WHEN v.existen <= 0 THEN 1 ELSE 0 END) as items_out,
         SUM(v.existen * v.pondd) as valor_inv,
-        COALESCE(s.unid, 0) as v_unid,
-        COALESCE(s.monto, 0) as v_monto,
+        COALESCE(s.unid, 0) as v_unid, COALESCE(s.monto, 0) as v_monto,
         MAX(v.prvreg) as default_prov
     FROM sinv v
-    LEFT JOIN (
-        SELECT v2.marca, SUM(i.cana) as unid, SUM(i.totad) as monto
-        FROM itpfac i
-        INNER JOIN sinv v2 ON i.codigoa = v2.codigo
-        WHERE i.fecha BETWEEN :ini AND :fin $prov_cond_v2
-        GROUP BY v2.marca
-    ) s ON v.marca = s.marca
-    WHERE 1=1 $prov_cond_v
-    GROUP BY v.marca
-    HAVING valor_inv > 0 OR v_monto > 0
-    ORDER BY valor_inv DESC
-    LIMIT 100
-");
-$stmt_mando->execute([':ini' => $f_ini, ':fin' => $f_fin]);
+    LEFT JOIN ($mando_inner) s ON v.marca = s.marca
+    WHERE 1=1"
+    . ($codprov !== '' ? " AND v.prvreg = :prov" : "")
+    . " GROUP BY v.marca HAVING valor_inv > 0 OR v_monto > 0 ORDER BY valor_inv DESC LIMIT 100";
+
+$mando_p = [':ini' => $f_ini, ':fin' => $f_fin];
+if ($codprov !== '') { $mando_p[':prov'] = $codprov; $mando_p[':prov2'] = $codprov; }
+$stmt_mando = $pdo->prepare($mando_sql);
+$stmt_mando->execute($mando_p);
 $cuadro_mando = $stmt_mando->fetchAll(PDO::FETCH_ASSOC);
 
 $pageTitle = "Indicadores KPI | Almacén";
 $activePage = "almacen";
 $path_prefix = "../../";
 
-include('../../includes/header.php');
-include('../../includes/sidebar.php');
+include '../../includes/header.php';
+include '../../includes/sidebar.php';
 ?>
 
 <main class="main-content">
-    <?php include("../../includes/navbar.php"); ?>
+    <?php include "../../includes/navbar.php"; ?>
     <div class="content-wrapper">
         
         <!-- Navegación -->
@@ -459,4 +444,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include('../../includes/footer.php'); ?>
+<?php include '../../includes/footer.php'; ?>

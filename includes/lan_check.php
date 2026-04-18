@@ -22,16 +22,15 @@ function is_local_ip($ip) {
 $client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
 if (!is_local_ip($client_ip)) {
-    // Registrar el intento bloqueado (Opcional)
-    // error_log("Acceso bloqueado desde IP externa: " . $client_ip);
+    error_log("Acceso bloqueado desde IP externa: " . $client_ip . " - " . ($_SERVER['REQUEST_URI'] ?? ''));
 
     // Enviar código de respuesta 403 Forbidden
     http_response_code(403);
     
     // Si la solicitud espera JSON o es una petición de API, enviar respuesta en JSON
-    $is_api = (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) || 
-              (isset($_GET['ajax'])) || 
-              (basename($_SERVER['PHP_SELF']) === 'api.php');
+    $is_api = (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
+              isset($_GET['ajax']) ||
+              basename($_SERVER['PHP_SELF']) === 'api.php';
 
     if ($is_api) {
         header('Content-Type: application/json');

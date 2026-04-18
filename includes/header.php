@@ -1,10 +1,18 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+if (empty($_SESSION['logged_in'])) {
+    if (!isset($path_prefix)) $path_prefix = "";
+    header('Location: ' . $path_prefix . 'index.php');
+    exit;
+}
+
 // Default values if not set
 if (!isset($pageTitle)) $pageTitle = "ProteoERP | Dashboard";
 if (!isset($path_prefix)) $path_prefix = "";
 
 // Validación de red local
-require_once($path_prefix . 'includes/lan_check.php');
+require_once $path_prefix . 'includes/lan_check.php';
 
 $cssVersion = filemtime(dirname(__DIR__) . '/assets/css/style.css');
 ?>

@@ -1,4 +1,10 @@
-<?php require_once('includes/lan_check.php'); ?>
+<?php
+require_once 'includes/lan_check.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -18,6 +24,7 @@
             </div>
             
             <form action="login.php" method="POST" class="login-form">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
                 <div id="login-error" class="login-error" style="display: none;">
                     Usuario o contraseña incorrectos.
                 </div>

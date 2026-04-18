@@ -7,7 +7,19 @@
  * Usa la consulta optimizada de repo_sitems + interfaz moderna AJAX
  */
 
-require_once('../../includes/db.php'); // Tu conexión PDO
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['logged_in'])) {
+    if (isset($_GET['ajax'])) {
+        header('Content-Type: application/json');
+        http_response_code(401);
+        echo json_encode(['error' => 'No autenticado']);
+    } else {
+        header('Location: ../../index.php');
+    }
+    exit;
+}
+
+require_once '../../includes/db.php';
 
 // ===================================
 // AJAX ENDPOINTS

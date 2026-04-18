@@ -6,7 +6,19 @@
  * ============================================================
  */
 
-require_once('../../includes/db.php');
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['logged_in'])) {
+    if (isset($_GET['ajax'])) {
+        header('Content-Type: application/json');
+        http_response_code(401);
+        echo json_encode(['error' => 'No autenticado']);
+    } else {
+        header('Location: ../../index.php');
+    }
+    exit;
+}
+
+require_once '../../includes/db.php';
 
 // --- Manejo AJAX: Detalle de Movimiento ---
 // DEBE IR AL PRINCIPIO PARA EVITAR SALIDA HTML EN LA RESPUESTA JSON
@@ -68,8 +80,8 @@ $pageTitle   = "ProteoERP | Cuadre de Caja";
 $activePage  = "cobranzas";
 $path_prefix = "../../";
 
-include('../../includes/header.php');
-include('../../includes/sidebar.php');
+include '../../includes/header.php';
+include '../../includes/sidebar.php';
 
 // --- Filtros de búsqueda ---
 $f_ini = $_GET['f_ini'] ?? date('Y-m-01');
@@ -154,7 +166,7 @@ function renderEstatus($e) {
 
 
 <main class="main-content">
-    <?php include("../../includes/navbar.php"); ?>
+    <?php include "../../includes/navbar.php"; ?>
 <div class="content-wrapper animate-in">
 
     <!-- HEADER -->
@@ -178,7 +190,7 @@ function renderEstatus($e) {
             <div class="metric-icon"><i class="fas fa-chart-line"></i></div>
             <div class="metric-content">
                 <span class="metric-label">Monto Promedio (USD)</span>
-                <p class="metric-value">$ <?php echo number_format(($total_ops > 0 ? $total_usd / $total_ops : 0), 2, '.', ','); ?></p>
+                <p class="metric-value">$ <?php echo number_format($total_ops > 0 ? $total_usd / $total_ops : 0, 2, '.', ','); ?></p>
             </div>
         </div>
         <div class="card metric-card success">
@@ -288,7 +300,7 @@ function renderEstatus($e) {
                         <tr><td colspan="8" class="text-center" style="padding:48px; opacity:0.5;">No se encontraron registros bajo los filtros actuales.</td></tr>
                     <?php else: ?>
                         <?php foreach($movimientos as $r): 
-                            $isHL=(!empty($r['estatus']) && strtoupper($r['estatus'])!=='C');
+                            $isHL = !empty($r['estatus']) && strtoupper($r['estatus']) !== 'C';
                         ?>
                         <tr class="clickable <?php echo $isHL?'row-total':'';?>" onclick="abrirModal('<?php echo $r['gestion'];?>')">
                             <td><span class="code-badge"><?php echo $r['gestion'];?></span></td>
@@ -328,8 +340,8 @@ function renderEstatus($e) {
             <div class="pager-container">
                 <div class="pager-group">
                     <?php if($page > 1): ?>
-                        <a href="?<?php echo http_build_query(array_merge($_GET,['page'=>1]));?>" class="pager-btn" title="Primero"><i class="fas fa-angles-left"></i></a>
-                        <a href="?<?php echo http_build_query(array_merge($_GET,['page'=>$page-1]));?>" class="pager-btn" title="Anterior"><i class="fas fa-angle-left"></i></a>
+                        <a href="?<?php echo http_build_query([...$_GET,'page'=>1]);?>" class="pager-btn" title="Primero"><i class="fas fa-angles-left"></i></a>
+                        <a href="?<?php echo http_build_query([...$_GET,'page'=>$page-1]);?>" class="pager-btn" title="Anterior"><i class="fas fa-angle-left"></i></a>
                     <?php else: ?>
                         <button class="pager-btn disabled"><i class="fas fa-angles-left"></i></button>
                         <button class="pager-btn disabled"><i class="fas fa-angle-left"></i></button>
@@ -338,8 +350,8 @@ function renderEstatus($e) {
                     <span class="pcur" style="margin: 0 15px; font-weight:700; color:var(--primary);"><?php echo $page; ?></span>
 
                     <?php if($page < $total_pages): ?>
-                        <a href="?<?php echo http_build_query(array_merge($_GET,['page'=>$page+1]));?>" class="pager-btn" title="Siguiente"><i class="fas fa-angle-right"></i></a>
-                        <a href="?<?php echo http_build_query(array_merge($_GET,['page'=>$total_pages]));?>" class="pager-btn" title="Último"><i class="fas fa-angles-right"></i></a>
+                        <a href="?<?php echo http_build_query([...$_GET,'page'=>$page+1]);?>" class="pager-btn" title="Siguiente"><i class="fas fa-angle-right"></i></a>
+                        <a href="?<?php echo http_build_query([...$_GET,'page'=>$total_pages]);?>" class="pager-btn" title="Último"><i class="fas fa-angles-right"></i></a>
                     <?php else: ?>
                         <button class="pager-btn disabled"><i class="fas fa-angle-right"></i></button>
                         <button class="pager-btn disabled"><i class="fas fa-angles-right"></i></button>
@@ -510,6 +522,6 @@ modal.addEventListener('click', (e) => {
 });
 </script>
 
-<?php include('../../includes/footer.php'); ?>
+<?php include '../../includes/footer.php'; ?>
 </body>
 </html>

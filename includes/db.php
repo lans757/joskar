@@ -1,17 +1,11 @@
 <?php
+$_env = file_exists(__DIR__ . '/../.env') ? parse_ini_file(__DIR__ . '/../.env') : [];
 
-/*$config = [
-    'host' => 'localhost',
-    'user' => 'root',
-    'pass' => '',
-    'db'   => 'datasis'
-];
-*/
 $config = [
-    'host' => 'localhost',
-    'user' => 'datasis',
-    'pass' => '1234',
-    'db'   => 'datasis'
+    'host' => $_env['DB_HOST'] ?? 'localhost',
+    'user' => $_env['DB_USER'] ?? '',
+    'pass' => $_env['DB_PASS'] ?? '',
+    'db'   => $_env['DB_NAME'] ?? '',
 ];
 try {
     $pdo = new PDO("mysql:host={$config['host']};dbname={$config['db']};charset=utf8", $config['user'], $config['pass']);
@@ -19,7 +13,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     http_response_code(500);
-    include(dirname(__DIR__) . '/errors/500.php');
+    include __DIR__ . '/../errors/500.php';
     exit;
 }
 ?>

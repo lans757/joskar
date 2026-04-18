@@ -7,7 +7,19 @@
  * ============================================================
  */
 
-require_once('../../includes/db.php');
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['logged_in'])) {
+    if (isset($_GET['ajax'])) {
+        header('Content-Type: application/json');
+        http_response_code(401);
+        echo json_encode(['error' => 'No autenticado']);
+    } else {
+        header('Location: ../../index.php');
+    }
+    exit;
+}
+
+require_once '../../includes/db.php';
 
 // --- Manejo AJAX: Detalle de pedidos por vendedor ---
 // DEBE IR AL PRINCIPIO PARA EVITAR SALIDA HTML EN LA RESPUESTA JSON
@@ -125,8 +137,8 @@ $pageTitle  = "ProteoERP | Monitor de Televentas";
 $activePage = "televentas";
 $path_prefix = "../../";
 
-include('../../includes/header.php');
-include('../../includes/sidebar.php');
+include '../../includes/header.php';
+include '../../includes/sidebar.php';
 
 // --- Filtros de búsqueda ---
 $f_ini      = $_GET['f_ini']      ?? date('Y-m-01');
@@ -383,7 +395,7 @@ $grafico_usr = prepararDatosGrafico(
      CONTENIDO PRINCIPAL
      ============================================================ -->
 <main class="main-content">
-    <?php include("../../includes/navbar.php"); ?>
+    <?php include "../../includes/navbar.php"; ?>
 <div class="content-wrapper animate-in">
 
     <!-- Navegación de Módulo -->
@@ -481,7 +493,7 @@ $grafico_usr = prepararDatosGrafico(
             <div class="metric-icon"><i class="fas fa-ticket-alt"></i></div>
             <div class="metric-content">
                 <span class="metric-label">Ticket Promedio (USD)</span>
-                <p class="metric-value">$ <?php echo number_format(($total_pedidos > 0 ? $total_usd / $total_pedidos : 0), 2, '.', ','); ?></p>
+                <p class="metric-value">$ <?php echo number_format($total_pedidos > 0 ? $total_usd / $total_pedidos : 0, 2, '.', ','); ?></p>
             </div>
         </div>
 
@@ -1316,6 +1328,6 @@ modal.addEventListener('click', (e) => {
 });
 </script>
 
-<?php include('../../includes/footer.php'); ?>
+<?php include '../../includes/footer.php'; ?>
 </body>
 </html>

@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-include('includes/db.php');
+include 'includes/db.php';
 
 if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
     header('Location: dashboard.php');
@@ -9,31 +9,51 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $token = $_POST['csrf_token'] ?? '';
+    if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
+        header('Location: index.php?error=csrf');
+        exit;
+    }
+    unset($_SESSION['csrf_token']);
+
     $user = $_POST['username'] ?? '';
     $pass = $_POST['password'] ?? '';
 
     try {
-        // Reuse the PDO connection already created by db.php
         $stmt = $pdo->prepare(
-            "SELECT us_codigo, us_nombre, supervisor FROM usuario WHERE us_codigo = ? AND us_clave = ?"
+            "SELECT us_codigo, us_nombre, supervisor, us_clave FROM usuario WHERE us_codigo = ?"
         );
-        $stmt->execute([$user, $pass]);
+        $stmt->execute([$user]);
         $userData = $stmt->fetch();
 
+        $valid = false;
         if ($userData) {
-            $_SESSION['logged_in'] = true;
-            $_SESSION['user_id'] = $userData['us_codigo'];
-            $_SESSION['user_name'] = trim($userData['us_nombre']);
-            $_SESSION['is_supervisor'] = ($userData['supervisor'] === 'S');
+            $stored = $userData['us_clave'];
+            if (password_verify($pass, $stored)) {
+                $valid = true;
+            } elseif ($pass === $stored) {
+                // Legacy plain-text: re-hash on first login
+                $valid = true;
+                $upd = $pdo->prepare("UPDATE usuario SET us_clave = ? WHERE us_codigo = ?");
+                $upd->execute([password_hash($pass, PASSWORD_BCRYPT), $user]);
+            }
+        }
 
+        if ($valid) {
+            session_regenerate_id(true);
+            $_SESSION['logged_in']    = true;
+            $_SESSION['user_id']      = $userData['us_codigo'];
+            $_SESSION['user_name']    = trim($userData['us_nombre']);
+            $_SESSION['is_supervisor'] = ($userData['supervisor'] === 'S');
             header('Location: dashboard.php');
-            exit;
-        } else {
-            header('Location: index.php?error=auth');
             exit;
         }
 
+        header('Location: index.php?error=auth');
+        exit;
+
     } catch (Exception $e) {
+        error_log('login.php error: ' . $e->getMessage());
         header('Location: index.php?error=db');
         exit;
     }
