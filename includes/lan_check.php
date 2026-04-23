@@ -61,7 +61,7 @@ if (!is_local_ip($client_ip)) {
             <h1>⛔ Acceso Restringido</h1>
             <p>Este sistema solo es accesible desde la red local de la empresa.</p>
             <p>Si cree que esto es un error, contacte al administrador.</p>
-            <div class="status-badge" style="background-color: #ffe4e6; color: #9f1239; margin-top: 10px;">
+            <div class="premium-badge badge-danger" style="margin-top: 10px;">
                 Tu IP: <?php echo htmlspecialchars($client_ip); ?>
             </div>
         </div>

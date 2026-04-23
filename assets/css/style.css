@@ -796,6 +796,44 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 15px rgba(255, 193, 7, 0.1);
 }
 
+.badge-danger {
+    background: rgba(244, 63, 94, 0.12);
+    color: var(--accent-rose);
+    border-color: rgba(244, 63, 94, 0.3);
+    box-shadow: 0 0 15px rgba(244, 63, 94, 0.1);
+}
+
+.badge-info {
+    background: rgba(56, 189, 248, 0.12);
+    color: var(--primary);
+    border-color: rgba(56, 189, 248, 0.3);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+}
+
+.alert {
+    padding: 16px 20px;
+    border-radius: var(--radius-md);
+    margin-bottom: 24px;
+    border-left: 4px solid transparent;
+    background: var(--bg-card);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.alert-success {
+    border-left-color: var(--accent-green);
+    background: rgba(16, 185, 129, 0.05);
+}
+
+.alert-error {
+    border-left-color: var(--accent-red);
+    background: rgba(239, 68, 68, 0.05);
+}
+
 /* ── Autofill Fix ─────────────────────────────────────────── */
 input:-webkit-autofill,
 input:-webkit-autofill:hover, 

@@ -21,25 +21,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $stmt = $pdo->prepare(
-            "SELECT us_codigo, us_nombre, supervisor, us_clave FROM usuario WHERE us_codigo = ?"
+            "SELECT u.us_codigo, u.us_nombre, u.supervisor, u.us_clave,
+                    COALESCE(a.activo, 'S') AS np_activo,
+                    COALESCE(a.remoto, 'N') AS np_remoto
+             FROM usuario u
+             LEFT JOIN notipro_acceso a ON a.us_codigo = u.us_codigo
+             WHERE u.us_codigo = ?"
         );
         $stmt->execute([$user]);
         $userData = $stmt->fetch();
 
         $valid = false;
         if ($userData) {
-            $stored = $userData['us_clave'];
-            if (password_verify($pass, $stored)) {
+            $stored = (string)$userData['us_clave'];
+            // Proteo guarda la clave en texto plano en usuario.us_clave (CHAR(12)).
+            // No re-hasheamos: la columna trunca a 12 y corrompe cualquier hash bcrypt.
+            if (hash_equals($stored, $pass)) {
                 $valid = true;
-            } elseif ($pass === $stored) {
-                // Legacy plain-text: re-hash on first login
-                $valid = true;
-                $upd = $pdo->prepare("UPDATE usuario SET us_clave = ? WHERE us_codigo = ?");
-                $upd->execute([password_hash($pass, PASSWORD_BCRYPT), $user]);
             }
         }
 
         if ($valid) {
+            if (strtoupper(trim((string)$userData['np_activo'])) !== 'S') {
+                header('Location: index.php?error=inactive');
+                exit;
+            }
+
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            $isRemote = filter_var(
+                $ip,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+            ) !== false;
+
+            if ($isRemote && strtoupper(trim((string)$userData['np_remoto'])) !== 'S') {
+                header('Location: index.php?error=remote');
+                exit;
+            }
+
             session_regenerate_id(true);
             $_SESSION['logged_in']    = true;
             $_SESSION['user_id']      = $userData['us_codigo'];

@@ -4,7 +4,7 @@ if (!isset($activePage)) $activePage = "dashboard";
 ?>
 <aside class="sidebar">
     <div class="sidebar-header">
-        <h2>Droguería Joskar C.A.</h2>
+        <h2>Dashboard Droguería Joskar</h2>
     </div>
     <ul class="sidebar-menu">
         <li>
@@ -49,6 +49,15 @@ if (!isset($activePage)) $activePage = "dashboard";
             </a>
         </li>
         
+        <?php if (isset($_SESSION['user_id']) && strcasecmp(trim((string)$_SESSION['user_id']), 'PRUEBAS') === 0): ?>
+        <hr style="border: none; border-top: 1px solid var(--border-light); margin: 10px 0;">
+        <li>
+            <a href="<?php echo $path_prefix; ?>modules/admin_notipro/vista_admin_notipro.php" class="<?php echo ($activePage == 'admin_notipro' ? 'active' : ''); ?>">
+                <i class="fas fa-user-shield"></i> Admin Acceso
+            </a>
+        </li>
+        <?php endif; ?>
+
         <!-- Add a logout option if it makes sense -->
         <li style="margin-top: auto;">
             <a href="<?php echo $path_prefix; ?>logout.php" style="color: var(--accent-red);">

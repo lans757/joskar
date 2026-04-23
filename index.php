@@ -60,6 +60,10 @@ if (empty($_SESSION['csrf_token'])) {
             errorBox.style.display = 'block';
             if (params.get('error') === 'db') {
                 errorBox.textContent = 'Error de conexión con la base de datos.';
+            } else if (params.get('error') === 'inactive') {
+                errorBox.textContent = 'Usuario inactivo. Contacte al administrador.';
+            } else if (params.get('error') === 'remote') {
+                errorBox.textContent = 'Este usuario no tiene permitido el acceso remoto.';
             }
         }
     </script>
