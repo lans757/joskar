@@ -25,6 +25,14 @@ require_once '../../includes/db.php';
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle') {
     $transac = $_GET['transac'] ?? '';
     header('Content-Type: application/json');
+
+    // Autorización: solo supervisores pueden ver detalles de cualquier transacción
+    // (A falta de un campo 'usuario' claro en smov para filtrar por dueño)
+    if (empty($_SESSION['is_supervisor'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'No autorizado']);
+        exit;
+    }
     try {
         // Datos del movimiento principal (pago)
         $stmt_mov = $pdo->prepare(

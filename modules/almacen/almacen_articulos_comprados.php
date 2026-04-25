@@ -441,7 +441,9 @@ if (!function_exists('formatUSD')) {
                         <?php else: ?>
                             <?php $total_monto = array_sum(array_column($resumen_prov, 'monto')); ?>
                             <?php foreach ($resumen_prov as $r): ?>
-                                <tr onclick="abrirModalArticulos('<?php echo $r['codprov']; ?>', '<?php echo htmlspecialchars(addslashes($r['proveedor'])); ?>')" 
+                                <tr class="prov-row" 
+                                    data-codprov="<?php echo htmlspecialchars($r['codprov']); ?>" 
+                                    data-proveedor="<?php echo htmlspecialchars($r['proveedor']); ?>"
                                     style="cursor: pointer;" title="Haga clic para ver artículos comprados a este proveedor">
                                     <td style="font-weight: 700; color: var(--text-main);">
                                         <?php echo htmlspecialchars($r['proveedor']); ?>
@@ -711,6 +713,10 @@ function renderDonutChart(data) {
     });
 }
 
+function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function renderLegend(data) {
     const legend = document.getElementById('chartLegend');
     if (!legend) return;
@@ -721,10 +727,13 @@ function renderLegend(data) {
     data.forEach((item, idx) => {
         const percent = totalMonto > 0 ? ((parseFloat(item.monto_total) / totalMonto) * 100).toFixed(1) : 0;
         html += `
-            <div class="legend-item" onclick="abrirModalArticulos('${item.codigo}', '${item.proveedor.replace(/'/g, "\\'")}')" style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--border-light); cursor:pointer;">
+            <div class="legend-item prov-row" 
+                 data-codprov="${item.codigo}" 
+                 data-proveedor="${escHtml(item.proveedor)}"
+                 style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--border-light); cursor:pointer;">
                 <div class="legend-color" style="background-color: ${chartColors[idx % chartColors.length]}; width:12px; height:12px; border-radius:50%;"></div>
                 <div class="legend-text" style="flex:1;">
-                    <strong style="font-size:0.85rem;">${item.proveedor}</strong><br>
+                    <strong style="font-size:0.85rem;">${escHtml(item.proveedor)}</strong><br>
                     <small style="color: var(--text-muted);">${item.total_articulos} artículos</small>
                 </div>
                 <div class="legend-value" style="font-weight:700; color:var(--primary);">${percent}%</div>
@@ -847,6 +856,17 @@ document.addEventListener('DOMContentLoaded', function() {
             showSearchAlert('No se encontró ningún artículo con: "' + searchVal + '"');
         }
     }
+    // Event listener delegado para filas de proveedores (Previene XSS)
+    document.addEventListener('click', function(e) {
+        const row = e.target.closest('.prov-row');
+        if (row) {
+            const codprov = row.getAttribute('data-codprov');
+            const proveedor = row.getAttribute('data-proveedor');
+            if (codprov && proveedor) {
+                abrirModalArticulos(codprov, proveedor);
+            }
+        }
+    });
 });
 </script>
 

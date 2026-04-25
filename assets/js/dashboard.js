@@ -1,96 +1,89 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // UI Elements
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tableAlertasBody = document.querySelector('#table-alertas tbody');
+    const tableAlertasBody    = document.querySelector('#table-alertas tbody');
     const tableMovimientosBody = document.querySelector('#table-movimientos tbody');
-    const paginationControls = document.getElementById('pagination-controls');
-    const paginationInfo = document.getElementById('pagination-info');
-    
-    // Metrics Elements
-    const countLow = document.getElementById('count-low');
-    const countCritical = document.getElementById('count-critical');
-    const countOk = document.getElementById('count-ok');
+    const paginationControls  = document.getElementById('pagination-controls');
+    const paginationInfo      = document.getElementById('pagination-info');
+    const countLow            = document.getElementById('count-low');
+    const countCritical       = document.getElementById('count-critical');
+    const countOk             = document.getElementById('count-ok');
     const totalInventoryCount = document.getElementById('total-inventory-count');
+    const filterSearch        = document.getElementById('filter-search');
+    const filterAlerta        = document.getElementById('filter-alerta');
+    const filterAlmacen       = document.getElementById('filter-almacen');
+    const filterProv          = document.getElementById('filter-prov');
 
-    /* 
-       ESTADO GLOBAL DE LA APLICACIÓN
-       - currentTab: Pestaña activa.
-       - currentPage: Página para paginación.
-       - sortField/sortDir: Control de ordenamiento.
-       - currentData: Almacén local de datos para ordenamiento instatáneo en cliente.
-    */
-    let currentTab = 'alertas';
+    const isVista  = window.location.pathname.includes('vistas/');
+    const apiBase  = isVista ? '../api.php' : 'api.php';
+    const expBase  = isVista ? '../export_excel.php' : 'export_excel.php';
+
+    let currentTab  = 'alertas';
     let currentPage = 1;
-    let sortField = '';
-    let sortDir = ''; 
-    let currentData = []; // Guardamos aquí los registros obtenidos de la API
+    let sortField   = '';
+    let sortDir     = '';
+    let currentData = [];
     let itemsPerPage = 10;
-    let lastTotalRecords = 0; // Total de registros del último fetch
-    let isLoading = false;
+    let isLoading   = false;
 
-    // Tab Switching
+    const COLS = { alertas: 8, movimientos: 7 };
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function getFilters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return {
+            search:  filterSearch?.value  ?? '',
+            alerta:  filterAlerta?.value  ?? '',
+            almacen: filterAlmacen?.value ?? '',
+            codprov: filterProv?.value    ?? '',
+            marca:   urlParams.get('marca') ?? '',
+        };
+    }
+
     window.switchTab = (target) => {
-        currentTab = target;
-        currentPage = 1; // Reset to page 1
-        
-        tabBtns.forEach(btn => btn.classList.remove('active'));
-        const activeBtn = Array.from(tabBtns).find(b => b.getAttribute('onclick').includes(target));
-        if (activeBtn) activeBtn.classList.add('active');
-        
+        currentTab  = target;
+        currentPage = 1;
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === target);
+        });
         document.getElementById('alertas-tab').classList.toggle('hidden', target !== 'alertas');
         document.getElementById('movimientos-tab').classList.toggle('hidden', target !== 'movimientos');
-        
+
         loadData();
     };
 
-    /**
-     * FUNCIÓN DE OBTENCIÓN DE DATOS (fetchData)
-     * Obtiene los registros básicos del servidor sin forzar el ordenamiento en SQL
-     * para permitir que el cliente (JS) lo maneje de forma instantánea.
-     */
     async function fetchData(action, page = 1) {
-        if (isLoading) return;
+        if (isLoading) return null;
         isLoading = true;
         showLoading(true);
 
+        const f      = getFilters();
         const offset = (page - 1) * itemsPerPage;
-        const search = document.getElementById('filter-search').value;
-        const alerta = document.getElementById('filter-alerta').value;
-        const almacen = document.getElementById('filter-almacen').value;
-        const codprov = document.getElementById('filter-prov') ? document.getElementById('filter-prov').value : '';
-        const urlParams = new URLSearchParams(window.location.search);
-        const marca = urlParams.get('marca') || '';
-        
-        const isVista = window.location.pathname.includes('vistas/');
-        const apiPath = isVista ? '../api.php' : 'api.php';
-        let url = `${apiPath}?action=${action}&limit=${itemsPerPage}&offset=${offset}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&codprov=${codprov}&marca=${encodeURIComponent(marca)}&sort_field=${sortField}&sort_dir=${sortDir}`;
-        
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Error HTTP ${response.status}: ${response.statusText}. ${errText.substring(0, 100)}`);
-            }
-            let result;
-            const text = await response.text();
-            try {
-                result = JSON.parse(text);
-            } catch (e) {
-                console.error('Invalid JSON from server:', text);
-                throw new Error('El servidor devolvió una respuesta inválida.');
-            }
-            
-            if (result.error) {
-                console.error('API Error:', result.error);
-                showErrorInTable(result.error);
-                return null;
-            }
+        const params = new URLSearchParams({
+            action, limit: itemsPerPage, offset,
+            search: f.search, alerta: f.alerta, almacen: f.almacen,
+            codprov: f.codprov, marca: f.marca,
+            sort_field: sortField, sort_dir: sortDir,
+        });
 
-            // Guardamos los datos en el estado global para poder ordenarlos localmente
+        try {
+            const response = await fetch(`${apiBase}?${params}`);
+            if (!response.ok) {
+                const txt = await response.text();
+                throw new Error(`HTTP ${response.status}: ${txt.substring(0, 100)}`);
+            }
+            const text = await response.text();
+            let result;
+            try { result = JSON.parse(text); }
+            catch { throw new Error('El servidor devolvió una respuesta inválida.'); }
+
+            if (result.error) { showErrorInTable(result.error); return null; }
+
             currentData = result.data || [];
             return result;
-        } catch (error) {
-            console.error('Fetch Error:', error);
+        } catch (err) {
             showErrorInTable('Fallo al cargar datos. Verifique la conexión o el servidor.');
             return null;
         } finally {
@@ -100,71 +93,83 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showLoading(show) {
-        const targetBody = currentTab === 'alertas' ? tableAlertasBody : tableMovimientosBody;
-        if (show) {
-            targetBody.innerHTML = `<tr><td colspan="${currentTab === 'alertas' ? 7 : 6}" class="text-center" style="padding: 60px; color: var(--text-muted);">
-                <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; margin-bottom: 20px; color: var(--primary);"></i><br>
-                <span style="font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.8rem;">Sincronizando Inventario...</span>
-            </td></tr>`;
-        }
+        if (!show) return;
+        const cols = COLS[currentTab];
+        const body = currentTab === 'alertas' ? tableAlertasBody : tableMovimientosBody;
+        body.innerHTML = `<tr><td colspan="${cols}" class="text-center" style="padding:60px;color:var(--text-muted);">
+            <i class="fas fa-circle-notch fa-spin" style="font-size:2rem;margin-bottom:20px;color:var(--primary);"></i><br>
+            <span style="font-weight:600;letter-spacing:0.05em;text-transform:uppercase;font-size:0.8rem;">Sincronizando Inventario...</span>
+        </td></tr>`;
     }
 
     function showErrorInTable(msg) {
-        const targetBody = currentTab === 'alertas' ? tableAlertasBody : tableMovimientosBody;
-        const colSpan = currentTab === 'alertas' ? 7 : 6;
-        targetBody.innerHTML = `<tr><td colspan="${colSpan}" class="text-center" style="padding: 60px;">
-            <i class="fas fa-exclamation-circle" style="font-size: 2rem; color: var(--accent-red); margin-bottom: 15px;"></i><br>
-            <span style="color: var(--accent-red); font-weight: 700; display: block; margin-bottom: 5px;">ERROR DE CONEXIÓN</span>
-            <span style="color: var(--text-muted); font-size: 0.85rem;">${msg}</span>
+        const cols = COLS[currentTab];
+        const body = currentTab === 'alertas' ? tableAlertasBody : tableMovimientosBody;
+        body.innerHTML = `<tr><td colspan="${cols}" class="text-center" style="padding:60px;">
+            <i class="fas fa-exclamation-circle" style="font-size:2rem;color:var(--accent-red);margin-bottom:15px;"></i><br>
+            <span style="color:var(--accent-red);font-weight:700;display:block;margin-bottom:5px;">ERROR DE CONEXIÓN</span>
+            <span style="color:var(--text-muted);font-size:0.85rem;">${escHtml(msg)}</span>
         </td></tr>`;
         renderMetrics({ critical: '0', low: '0', ok: '0' });
     }
 
-    // FUNCIONES DE RENDERIZADO DE TABLAS
-    // Estas funciones transforman el array sortedData en el HTML final
-
     function renderAlerts(data, total, result) {
-        if (data.length === 0) {
-            tableAlertasBody.innerHTML = '<tr><td colspan="7" class="text-center">No hay alertas</td></tr>';
+        if (!data.length) {
+            tableAlertasBody.innerHTML = `<tr><td colspan="${COLS.alertas}" class="text-center">No hay alertas</td></tr>`;
             renderMetrics(result.metrics, total);
             renderPagination(0);
             return;
         }
 
         tableAlertasBody.innerHTML = data.map(item => {
-            const diStock = parseFloat(item.diasinv) || 0;
-            const exist = parseFloat(item.existen) || 0;
-            const minStock = parseFloat(item.min) || 0;
-            const maxStock = parseFloat(item.max) || 0;
-            const ventau = parseFloat(item.ventau) || 0;
-            const vdp = ventau / 30;
-            
-            // Sugerido de compra para cubrir 15 días: (VDP * 15) - existencia
+            const exist    = parseFloat(item.existen) || 0;
+            const diStock  = parseFloat(item.diasinv) || 0;
+            const ventau   = parseFloat(item.ventau)  || 0;
+            const vdp      = ventau / 30;
             const sugerido = Math.max(0, (vdp * 15) - exist);
-            
-            let statusLabel, statusClass;
-            if (exist <= 0) {
-                statusLabel = 'Agotado'; statusClass = 'badge-critical';
-            } else if (diStock < 10) {
-                statusLabel = 'Crítico'; statusClass = 'badge-critical';
-            } else if (diStock <= 30) {
-                statusLabel = 'Atención'; statusClass = 'badge-low';
-            } else {
-                statusLabel = 'Óptimo'; statusClass = 'badge-ok';
-            }
 
-            return `
-                <tr>
-                    <td><span class="code-badge">${item.codigo}</span></td>
-                    <td class="product-name">${item.descrip}</td>
-                    <td><small style="color:var(--text-muted);">${item.proveedor || 'N/A'}</small></td>
-                    <td class="text-right"><b>${exist.toFixed(0)}</b></td>
-                    <td class="text-right">${vdp.toFixed(2)}</td>
-                    <td class="text-right">${minStock.toFixed(0)}</td>
-                    <td class="text-center"><span class="badge ${statusClass}">${statusLabel} (<b>${diStock.toFixed(0)}d</b>)</span></td>
-                    <td class="text-right"><span style="color: var(--accent-yellow); font-weight: 800; font-size: 0.9rem;">${sugerido > 0 ? sugerido.toFixed(0) : '—'}</span></td>
-                </tr>
-            `;
+            let statusLabel, statusClass;
+            if (exist <= 0)       { statusLabel = 'Agotado'; statusClass = 'badge-critical'; }
+            else if (diStock < 10) { statusLabel = 'Crítico'; statusClass = 'badge-critical'; }
+            else if (diStock <= 30){ statusLabel = 'Atención'; statusClass = 'badge-low'; }
+            else                   { statusLabel = 'Óptimo';   statusClass = 'badge-ok'; }
+
+            return `<tr>
+                <td><span class="code-badge">${escHtml(item.codigo)}</span></td>
+                <td class="product-name">${escHtml(item.descrip)}</td>
+                <td><small style="color:var(--text-muted);">${escHtml(item.proveedor || 'N/A')}</small></td>
+                <td class="text-right"><b>${exist.toFixed(0)}</b></td>
+                <td class="text-right">${vdp.toFixed(2)}</td>
+                <td class="text-right">${(parseFloat(item.min)||0).toFixed(0)}</td>
+                <td class="text-center"><span class="badge ${statusClass}">${statusLabel} (<b>${diStock.toFixed(0)}d</b>)</span></td>
+                <td class="text-right"><span style="color:var(--accent-yellow);font-weight:800;font-size:0.9rem;">${sugerido > 0 ? sugerido.toFixed(0) : '—'}</span></td>
+            </tr>`;
+        }).join('');
+
+        renderMetrics(result.metrics, total);
+        renderPagination(total);
+    }
+
+    function renderMovements(data, total, result) {
+        if (!data.length) {
+            tableMovimientosBody.innerHTML = `<tr><td colspan="${COLS.movimientos}" class="text-center">Sin datos</td></tr>`;
+            renderMetrics(result?.metrics, total);
+            renderPagination(0);
+            return;
+        }
+
+        tableMovimientosBody.innerHTML = data.map(item => {
+            const diStock     = parseFloat(item.diasinv) || 0;
+            const statusColor = diStock < 10 ? 'var(--accent-red)' : (diStock <= 30 ? 'var(--accent-yellow)' : 'var(--accent-green)');
+            return `<tr>
+                <td><small style="color:var(--text-muted);font-weight:600;">${escHtml(item.grupo || 'GENERAL')}</small></td>
+                <td><span class="code-badge">${escHtml(item.codigo)}</span></td>
+                <td class="product-name">${escHtml(item.descrip)}</td>
+                <td><small style="color:var(--text-muted);">${escHtml(item.proveedor || 'N/A')}</small></td>
+                <td class="text-right" style="color:var(--text-main);font-weight:600;">${(parseFloat(item.ventau)||0).toFixed(2)}</td>
+                <td class="text-right"><b>${(parseFloat(item.existen)||0).toFixed(0)}</b></td>
+                <td class="text-center"><b style="color:${statusColor}">${diStock.toFixed(0)} d</b></td>
+            </tr>`;
         }).join('');
 
         renderMetrics(result.metrics, total);
@@ -174,239 +179,132 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderMetrics(metrics, total) {
         if (!metrics) return;
         countCritical.textContent = (metrics.critical || 0).toLocaleString('es-VE');
-        countLow.textContent = (metrics.low || 0).toLocaleString('es-VE');
-        countOk.textContent = (metrics.ok || 0).toLocaleString('es-VE');
-        
+        countLow.textContent      = (metrics.low      || 0).toLocaleString('es-VE');
+        countOk.textContent       = (metrics.ok       || 0).toLocaleString('es-VE');
+
         const countOut = document.getElementById('count-out');
         if (countOut) countOut.textContent = (metrics.out || 0).toLocaleString('es-VE');
 
         if (totalInventoryCount) {
-            const displayTotal = total !== undefined ? total : metrics.totalH1;
-            totalInventoryCount.textContent = (displayTotal || 0).toLocaleString('es-VE');
+            const display = total !== undefined ? total : metrics.totalH1;
+            totalInventoryCount.textContent = (display || 0).toLocaleString('es-VE');
         }
-        
-        // Valor USD
+
         const valUsdEl = document.getElementById('val-usd');
         if (valUsdEl && metrics.valorUSD !== undefined) {
-            valUsdEl.textContent = '$ ' + metrics.valorUSD.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            valUsdEl.textContent = '$ ' + metrics.valorUSD.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
     }
-
-    function renderMovements(data, total, result) {
-        if (data.length === 0) {
-            tableMovimientosBody.innerHTML = '<tr><td colspan="6" class="text-center">Sin datos</td></tr>';
-            renderMetrics(result ? result.metrics : null, total);
-            renderPagination(0);
-            return;
-        }
-
-        tableMovimientosBody.innerHTML = data.map(item => {
-            const diStock = parseFloat(item.diasinv) || 0;
-            const statusColor = diStock < 10 ? 'var(--accent-red)' : (diStock <= 30 ? 'var(--accent-yellow)' : 'var(--accent-green)');
-            return `
-                <tr>
-                    <td><small style="color: var(--text-muted); font-weight: 600;">${item.grupo || 'GENERAL'}</small></td>
-                    <td><span class="code-badge">${item.codigo}</span></td>
-                    <td class="product-name">${item.descrip}</td>
-                    <td><small style="color:var(--text-muted);">${item.proveedor || 'N/A'}</small></td>
-                    <td class="text-right" style="color: var(--text-main); font-weight: 600;">${(parseFloat(item.ventau) || 0).toFixed(2)}</td>
-                    <td class="text-right"><b>${parseFloat(item.existen).toFixed(0)}</b></td>
-                    <td class="text-center"><b style="color:${statusColor}">${diStock.toFixed(0)} d</b></td>
-                </tr>
-            `;
-        }).join('');
-        renderMetrics(result.metrics, total);
-        renderPagination(total);
-    }
-
-    // Render Data Main function
-    async function loadData() {
-        const response = await fetchData(currentTab, currentPage);
-        if (!response) return;
-        
-        if (currentTab === 'alertas') {
-            renderAlerts(currentData, response.total, response);
-        } else {
-            renderMovements(currentData, response.total, response);
-        }
-    }
-    
-    // Expose loadData globally for the Refresh button
-    window.refreshData = () => {
-        loadData();
-    };
-
-    window.exportData = () => {
-        const search = document.getElementById('filter-search').value;
-        const alerta = document.getElementById('filter-alerta').value;
-        const almacen = document.getElementById('filter-almacen').value;
-        const codprov = document.getElementById('filter-prov') ? document.getElementById('filter-prov').value : '';
-        
-        const isVista = window.location.pathname.includes('vistas/');
-        const exportPath = isVista ? '../export_excel.php' : 'export_excel.php';
-        
-        let url = `${exportPath}?action=${currentTab}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&codprov=${codprov}`;
-        window.location.href = url;
-    };
 
     function renderPagination(total) {
-        lastTotalRecords = total;
         const totalPages = Math.ceil(total / itemsPerPage) || 1;
-        const startIdx = (currentPage - 1) * itemsPerPage + 1;
-        const endIdx = Math.min(currentPage * itemsPerPage, total);
+        const startIdx   = (currentPage - 1) * itemsPerPage + 1;
+        const endIdx     = Math.min(currentPage * itemsPerPage, total);
 
         paginationInfo.innerHTML = `Mostrando <b>${startIdx}-${endIdx}</b> de <b>${total}</b> registros`;
 
-        let html = '';
-        
-        // Botones de navegación (Primero y Anterior)
-        html += `
+        const atFirst = currentPage === 1;
+        const atLast  = currentPage === totalPages;
+        let html = `
             <div class="pager-group">
-                <button class="pager-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(1)" title="Primera"><i class="fas fa-angles-left"></i></button>
-                <button class="pager-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})" title="Anterior"><i class="fas fa-angle-left"></i></button>
+                <button class="pager-btn" ${atFirst ? 'disabled' : ''} onclick="changePage(1)" title="Primera"><i class="fas fa-angles-left"></i></button>
+                <button class="pager-btn" ${atFirst ? 'disabled' : ''} onclick="changePage(${currentPage - 1})" title="Anterior"><i class="fas fa-angle-left"></i></button>
             </div>
-        `;
+            <div class="pager-group">`;
 
-        // Generar lista de páginas
-        html += `<div class="pager-group">`;
         let startPage = Math.max(1, currentPage - 2);
-        let endPage = Math.min(totalPages, startPage + 4);
+        let endPage   = Math.min(totalPages, startPage + 4);
         if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
 
         if (startPage > 1) {
             html += `<button class="pager-btn" onclick="changePage(1)">1</button>`;
             if (startPage > 2) html += `<span class="page-ellipsis">...</span>`;
         }
-
         for (let i = startPage; i <= endPage; i++) {
             html += `<button class="pager-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
         }
-
         if (endPage < totalPages) {
             if (endPage < totalPages - 1) html += `<span class="page-ellipsis">...</span>`;
             html += `<button class="pager-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
         }
-        html += `</div>`;
 
-        // Botones de navegación (Siguiente y Último)
-        html += `
+        html += `</div>
             <div class="pager-group">
-                <button class="pager-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${currentPage + 1})" title="Siguiente"><i class="fas fa-angle-right"></i></button>
-                <button class="pager-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(${totalPages})" title="Última"><i class="fas fa-angles-right"></i></button>
-            </div>
-        `;
-        
+                <button class="pager-btn" ${atLast ? 'disabled' : ''} onclick="changePage(${currentPage + 1})" title="Siguiente"><i class="fas fa-angle-right"></i></button>
+                <button class="pager-btn" ${atLast ? 'disabled' : ''} onclick="changePage(${totalPages})" title="Última"><i class="fas fa-angles-right"></i></button>
+            </div>`;
+
         paginationControls.innerHTML = html;
     }
 
-    /**
-     * LÓGICA DE ORDENAMIENTO EN CLIENTE (handleHeaderSort)
-     * Capturamos el clic en <th> y procesamos el array currentData localmente.
-     */
-    const handleHeaderSort = (e) => {
-        const th = e.currentTarget;
-        const field = th.dataset.sort; 
-        const type = th.dataset.type; // Capturamos si es 'number' o 'text'
-        if (!field || !currentData.length) return;
+    async function loadData() {
+        const response = await fetchData(currentTab, currentPage);
+        if (!response) return;
+        if (currentTab === 'alertas') renderAlerts(currentData, response.total, response);
+        else renderMovements(currentData, response.total, response);
+    }
 
-        // Limpieza visual de otros encabezados
-        document.querySelectorAll('th[data-sort]').forEach(h => {
-            if (h !== th) {
-                h.classList.remove('active-sort');
-                h.querySelector('.sort-icon i').className = 'fas fa-sort';
-            }
+    window.refreshData = () => loadData();
+
+    window.exportData = () => {
+        const f      = getFilters();
+        const params = new URLSearchParams({
+            action: currentTab, search: f.search,
+            alerta: f.alerta, almacen: f.almacen, codprov: f.codprov,
         });
-
-        // Toggle de dirección
-        if (sortField === field) {
-            sortDir = sortDir === 'ASC' ? 'DESC' : 'ASC';
-        } else {
-            sortField = field;
-            sortDir = 'ASC';
-            th.classList.add('active-sort');
-        }
-
-        // Actualizamos iconos visuales
-        const icon = th.querySelector('.sort-icon i');
-        icon.className = sortDir === 'ASC' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-
-        // RE-CARGA SERVER-SIDE: En lugar de ordenar localmente, pedimos los datos ordenados al servidor
-        currentPage = 1; // Volvemos a la página 1 al cambiar el orden
-        loadData();
+        window.location.href = `${expBase}?${params}`;
     };
 
-    /**
-     * VINCULACIÓN DE EVENTOS (Event Listeners)
-     * Confirmamos que cada <th> tiene su listener vinculado correctamente.
-     */
     document.querySelectorAll('th[data-sort]').forEach(th => {
-        th.addEventListener('click', handleHeaderSort);
+        th.addEventListener('click', () => {
+            const field = th.dataset.sort;
+            if (!field || !currentData.length) return;
+
+            document.querySelectorAll('th[data-sort]').forEach(h => {
+                if (h !== th) {
+                    h.classList.remove('active-sort');
+                    h.querySelector('.sort-icon i').className = 'fas fa-sort';
+                }
+            });
+
+            sortDir   = sortField === field && sortDir === 'ASC' ? 'DESC' : 'ASC';
+            sortField = field;
+            th.classList.add('active-sort');
+            th.querySelector('.sort-icon i').className = sortDir === 'ASC' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+
+            currentPage = 1;
+            loadData();
+        });
     });
 
     window.changePage = (page) => {
         currentPage = page;
         loadData();
-        // Scroll smoothly to the top of the table
-        document.querySelector('.table-card').scrollIntoView({ behavior: 'smooth' });
+        document.querySelector('.table-card')?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    // Filter Events
-    document.getElementById('items-per-page').addEventListener('change', (e) => {
+    document.getElementById('items-per-page').addEventListener('change', e => {
         itemsPerPage = parseInt(e.target.value);
-        currentPage = 1;
+        currentPage  = 1;
         loadData();
     });
 
-    document.getElementById('filter-alerta').addEventListener('change', () => {
-        currentPage = 1;
-        loadData();
+    [filterAlerta, filterAlmacen, filterProv].forEach(el => {
+        el?.addEventListener('change', () => { currentPage = 1; loadData(); });
     });
-
-    document.getElementById('filter-almacen').addEventListener('change', () => {
-        currentPage = 1;
-        loadData();
-    });
-
-    if (document.getElementById('filter-prov')) {
-        document.getElementById('filter-prov').addEventListener('change', () => {
-            currentPage = 1;
-            loadData();
-        });
-    }
 
     let searchTimeout;
-    document.getElementById('filter-search').addEventListener('input', () => {
+    filterSearch?.addEventListener('input', () => {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            currentPage = 1;
-            loadData();
-        }, 500);
+        searchTimeout = setTimeout(() => { currentPage = 1; loadData(); }, 500);
     });
 
-    // Initial Load
-    // Sync filters with URL parameters if present (for deep linking from KPI dashboard)
+    // Sincronizar filtros con parámetros URL (deep linking desde KPI dashboard)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('alerta')) {
-        const el = document.getElementById('filter-alerta');
-        if (el) el.value = urlParams.get('alerta');
-    }
-    if (urlParams.has('almacen')) {
-        const el = document.getElementById('filter-almacen');
-        if (el) el.value = urlParams.get('almacen');
-    }
-    if (urlParams.has('codprov')) {
-        const el = document.getElementById('filter-prov');
-        if (el) el.value = urlParams.get('codprov');
-    }
-    if (urlParams.has('search')) {
-        const el = document.getElementById('filter-search');
-        if (el) el.value = urlParams.get('search');
-    }
+    [['alerta', filterAlerta], ['almacen', filterAlmacen], ['codprov', filterProv], ['search', filterSearch]]
+        .forEach(([key, el]) => { if (el && urlParams.has(key)) el.value = urlParams.get(key); });
 
     loadData();
 
-    // Auto Refresh (solo cuando la pestaña está visible)
-    setInterval(() => {
-        if (document.visibilityState === 'visible') loadData();
-    }, 60000);
+    setInterval(() => { if (document.visibilityState === 'visible') loadData(); }, 60000);
 });

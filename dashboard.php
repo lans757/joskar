@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "ProteoERP | Dashboard General";
+$pageTitle = "Dashboard Droguería Joskar | Dashboard General";
 $activePage = "dashboard";
 $path_prefix = "";
 

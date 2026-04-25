@@ -408,10 +408,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 800;
     letter-spacing: -0.03em;
     margin-bottom: 8px;
-    background: linear-gradient(135deg, #fff, var(--primary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text-main);
 }
 
 .page-title p {
@@ -759,7 +756,6 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 50px;
     font-size: 0.75rem;
     font-weight: 800;
-    text-transform: uppercase;
     letter-spacing: 0.05em;
     display: -webkit-inline-flex;
     display: inline-flex;

@@ -1,5 +1,7 @@
 <?php
 require_once 'includes/lan_check.php';
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -58,11 +60,14 @@ if (empty($_SESSION['csrf_token'])) {
         if (params.has('error')) {
             const errorBox = document.getElementById('login-error');
             errorBox.style.display = 'block';
-            if (params.get('error') === 'db') {
+            const e = params.get('error');
+            if (e === 'db') {
                 errorBox.textContent = 'Error de conexión con la base de datos.';
-            } else if (params.get('error') === 'inactive') {
-                errorBox.textContent = 'Usuario inactivo. Contacte al administrador.';
-            } else if (params.get('error') === 'remote') {
+            } else if (e === 'csrf') {
+                errorBox.textContent = 'Sesión expirada. Por favor intenta de nuevo.';
+            } else if (e === 'inactive' || e === 'disabled') {
+                errorBox.textContent = 'Tu cuenta está deshabilitada. Contacta al administrador.';
+            } else if (e === 'remote') {
                 errorBox.textContent = 'Este usuario no tiene permitido el acceso remoto.';
             }
         }

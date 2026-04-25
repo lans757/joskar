@@ -11,8 +11,8 @@ if (!isset($path_prefix)) $path_prefix = "";
             <i class="fas fa-user"></i>
         </div>
         <div class="user-info">
-            <span class="user-name">Administrador</span>
-            <span class="user-role">Soporte Técnico</span>
+            <span class="user-name"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'Usuario', ENT_QUOTES, 'UTF-8'); ?></span>
+            <span class="user-role"><?php echo !empty($_SESSION['is_supervisor']) ? 'Supervisor' : 'Usuario'; ?></span>
         </div>
         <i class="fas fa-chevron-down" style="font-size: 0.8rem; color: var(--text-muted);"></i>
         

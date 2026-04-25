@@ -8,7 +8,7 @@ if (empty($_SESSION['logged_in'])) {
 }
 
 // Default values if not set
-if (!isset($pageTitle)) $pageTitle = "ProteoERP | Dashboard";
+if (!isset($pageTitle)) $pageTitle = "Dashboard Droguería Joskar | Sistema";
 if (!isset($path_prefix)) $path_prefix = "";
 
 // Validación de red local

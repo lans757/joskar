@@ -49,6 +49,15 @@ if (!isset($activePage)) $activePage = "dashboard";
             </a>
         </li>
         
+        <?php if (!empty($_SESSION['is_supervisor'])): ?>
+        <hr style="border: none; border-top: 1px solid var(--border-light); margin: 10px 0;">
+        <li>
+            <a href="<?php echo $path_prefix; ?>modules/administracion/usuarios.php" class="<?php echo ($activePage == 'usuarios' ? 'active' : ''); ?>">
+                <i class="fas fa-users-cog"></i> Gestión de Usuarios
+            </a>
+        </li>
+        <?php endif; ?>
+
         <?php if (isset($_SESSION['user_id']) && strcasecmp(trim((string)$_SESSION['user_id']), 'PRUEBAS') === 0): ?>
         <hr style="border: none; border-top: 1px solid var(--border-light); margin: 10px 0;">
         <li>
@@ -58,7 +67,6 @@ if (!isset($activePage)) $activePage = "dashboard";
         </li>
         <?php endif; ?>
 
-        <!-- Add a logout option if it makes sense -->
         <li style="margin-top: auto;">
             <a href="<?php echo $path_prefix; ?>logout.php" style="color: var(--accent-red);">
                 <i class="fas fa-sign-out-alt"></i> Cerrar Sesión

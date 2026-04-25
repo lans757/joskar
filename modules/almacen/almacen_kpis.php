@@ -46,11 +46,17 @@ $stmt_compras->execute($comp_p);
 $compras_periodo = $stmt_compras->fetchColumn() ?: 0;
 
 // 3. Ventas del Periodo
-$vent_sql = "SELECT SUM(i.totad) FROM itpfac i
-    INNER JOIN sinv v ON i.codigoa = v.codigo
-    WHERE i.fecha BETWEEN ? AND ?";
-$vent_p = [$f_ini, $f_fin];
-if ($codprov !== '') { $vent_sql .= " AND v.prvreg = ?"; $vent_p[] = $codprov; }
+// LEFT JOIN sinv para no excluir ventas de productos eliminados del catálogo.
+// El filtro por proveedor sólo aplica el JOIN cuando es necesario.
+if ($codprov !== '') {
+    $vent_sql = "SELECT SUM(i.totad) FROM itpfac i
+        INNER JOIN sinv v ON i.codigoa = v.codigo
+        WHERE i.fecha BETWEEN ? AND ? AND v.prvreg = ?";
+    $vent_p = [$f_ini, $f_fin, $codprov];
+} else {
+    $vent_sql = "SELECT SUM(i.totad) FROM itpfac i WHERE i.fecha BETWEEN ? AND ?";
+    $vent_p = [$f_ini, $f_fin];
+}
 $stmt_ventas = $pdo->prepare($vent_sql);
 $stmt_ventas->execute($vent_p);
 $ventas_periodo = $stmt_ventas->fetchColumn() ?: 0;
@@ -159,19 +165,19 @@ include '../../includes/sidebar.php';
             <form method="GET" class="filters-row">
                 <div class="filter-group">
                     <label>Desde</label>
-                    <input type="date" name="f_ini" value="<?php echo $f_ini; ?>">
+                    <input type="date" name="f_ini" value="<?php echo htmlspecialchars($f_ini, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="filter-group">
                     <label>Hasta</label>
-                    <input type="date" name="f_fin" value="<?php echo $f_fin; ?>">
+                    <input type="date" name="f_fin" value="<?php echo htmlspecialchars($f_fin, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="filter-group">
                     <label>Proveedor</label>
                     <select name="codprov" style="min-width: 200px;">
                         <option value="">TODOS LOS PROVEEDORES</option>
                         <?php foreach($proveedores as $p): ?>
-                            <option value="<?php echo $p['proveed']; ?>" <?php echo $codprov == $p['proveed'] ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($p['nombre']); ?>
+                            <option value="<?php echo htmlspecialchars($p['proveed'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo $codprov == $p['proveed'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($p['nombre'], ENT_QUOTES, 'UTF-8'); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -184,7 +190,7 @@ include '../../includes/sidebar.php';
 
         <!-- Métricas Principales -->
         <div class="metrics-grid">
-            <a href="vista_almacen.php?alerta=all<?php echo $codprov ? '&codprov='.$codprov : ''; ?>" class="card metric-card" style="text-decoration: none;">
+            <a href="vista_almacen.php?alerta=all<?php echo $codprov ? '&codprov='.urlencode($codprov) : ''; ?>" class="card metric-card" style="text-decoration: none;">
                 <div class="metric-icon" style="color:var(--primary);"><i class="fas fa-warehouse"></i></div>
                 <div class="metric-content">
                     <span class="metric-label">Valor del Inventario</span>
@@ -210,7 +216,7 @@ include '../../includes/sidebar.php';
                     </span>
                 </div>
             </div>
-            <a href="vista_almacen.php?alerta=out<?php echo $codprov ? '&codprov='.$codprov : ''; ?>" class="card metric-card" style="text-decoration: none;">
+            <a href="vista_almacen.php?alerta=out<?php echo $codprov ? '&codprov='.urlencode($codprov) : ''; ?>" class="card metric-card" style="text-decoration: none;">
                 <div class="metric-icon" style="color:var(--accent-red);"><i class="fas fa-box-open"></i></div>
                 <div class="metric-content">
                     <span class="metric-label">Productos sin Stock</span>
@@ -284,15 +290,12 @@ include '../../includes/sidebar.php';
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($cuadro_mando as $m): 
+                        <?php foreach ($cuadro_mando as $m):
                             $rotacion = ($m['valor_inv'] > 0) ? ($m['v_monto'] / $m['valor_inv']) : 0;
-                            // Limitar rotación visual para evitar porcentajes imposibles si hay poca inversión
-                            $rot_display = $rotacion > 1 ? 1 : $rotacion;
-                            $color_rot = $rot_display > 0.5 ? '#00ffc3' : ($rot_display > 0.1 ? '#00b4ff' : '#ffcc00');
-                            
+                            // Sin tope: rotación > 100% indica alta rotación (buen rendimiento)
+                            $color_rot = $rotacion > 1.0 ? '#00ffc3' : ($rotacion > 0.3 ? '#00b4ff' : '#ffcc00');
                             $link_prov = $codprov ? $codprov : $m['default_prov'];
                         ?>
-                            <tr>
                             <tr>
                                 <td style="font-weight:600; color:var(--primary);"><?php echo htmlspecialchars($m['marca'] ?: 'SIN MARCA'); ?></td>
                                 <td class="text-center">
@@ -312,7 +315,7 @@ include '../../includes/sidebar.php';
                                 <td class="text-right" style="color:var(--accent-cyan);">$ <?php echo number_format($m['v_monto'], 2, ',', '.'); ?></td>
                                 <td class="text-center">
                                     <span class="badge" style="background:<?php echo $color_rot; ?>; color:#000; font-weight:800; padding:2px 8px; border-radius:4px; font-size:0.7rem;">
-                                        <?php echo number_format($rot_display * 100, 1); ?>%
+                                        <?php echo number_format($rotacion * 100, 1); ?>%
                                     </span>
                                 </td>
                             </tr>
@@ -323,8 +326,6 @@ include '../../includes/sidebar.php';
         </div>
     </div>
 </main>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {

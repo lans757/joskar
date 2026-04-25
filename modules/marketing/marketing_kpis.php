@@ -1,6 +1,18 @@
 <?php
 require_once('../../includes/db.php');
 
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (empty($_SESSION['logged_in'])) {
+    if (isset($_GET['ajax'])) {
+        header('Content-Type: application/json');
+        http_response_code(401);
+        echo json_encode(['error' => 'No autorizado']);
+    } else {
+        header('Location: ../../index.php');
+    }
+    exit;
+}
+
 // --- MANEJO AJAX ---
 if (isset($_GET['ajax'])) {
     if ($_GET['ajax'] === 'filtros') {
@@ -30,8 +42,9 @@ if (isset($_GET['ajax'])) {
                 'tipos_desc' => $tipos_desc
             ]);
         } catch (PDOException $e) {
+            error_log('marketing_kpis error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode(['error' => 'Error interno del servidor']);
         }
         exit;
     }
@@ -58,7 +71,10 @@ if (isset($_GET['ajax'])) {
                 $params[':prov'] = $codprov;
             }
             if (!empty($tipo_desc)) {
-                $where .= " AND s.$tipo_desc > 0";
+                $allowed_cols = ['descu1' => 'descu1', 'descu2' => 'descu2', 'descu3' => 'descu3', 'descu4' => 'descu4', 'descu' => 'descu'];
+                if (isset($allowed_cols[$tipo_desc])) {
+                    $where .= " AND s.{$allowed_cols[$tipo_desc]} > 0";
+                }
             }
             if (!empty($estado)) {
                 $where .= " AND f.tipo_doc = :status";
@@ -131,8 +147,9 @@ if (isset($_GET['ajax'])) {
                 'dist_desc'   => $dist_descuentos
             ]);
         } catch (PDOException $e) {
+            error_log('marketing_kpis error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => $e->getMessage()]);
+            echo json_encode(['error' => 'Error interno del servidor']);
         }
         exit;
     }

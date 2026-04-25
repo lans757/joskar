@@ -70,7 +70,7 @@ include('../../includes/sidebar.php');
     <?php include("../../includes/navbar.php"); ?>
     <div class="content-wrapper">
         <div class="page-title">
-            <h1>Administración de Accesos - Droguería Joskar</h1>
+            <h1>Administración de Accesos</h1>
             <p>Gestiona qué usuarios pueden ingresar al sistema y si tienen acceso remoto. Esta configuración no afecta a Proteo.</p>
         </div>
 
