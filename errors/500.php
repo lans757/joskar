@@ -158,6 +158,11 @@
     </style>
 </head>
 <body>
+    <?php 
+        $current_dir = basename(dirname($_SERVER['SCRIPT_NAME']));
+        $base_path = ($current_dir === 'errors') ? dirname(dirname($_SERVER['SCRIPT_NAME'])) : dirname($_SERVER['SCRIPT_NAME']);
+        if ($base_path === DIRECTORY_SEPARATOR) $base_path = '';
+    ?>
     <div class="error-wrapper">
         <div class="error-icon">
             <i class="fas fa-triangle-exclamation"></i>
@@ -170,7 +175,7 @@
             <button onclick="window.location.reload()" class="btn btn-primary">
                 <i class="fas fa-sync-alt"></i> Reintentar ahora
             </a>
-            <a href="/joskar/dashboard.php" class="btn btn-outline">
+            <a href="<?php echo $base_path; ?>/dashboard.php" class="btn btn-outline">
                 <i class="fas fa-house"></i> Volver al Inicio
             </a>
         </div>

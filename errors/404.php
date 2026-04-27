@@ -150,13 +150,18 @@
         <div class="obj-2"></div>
     </div>
 
+    <?php 
+        $current_dir = basename(dirname($_SERVER['SCRIPT_NAME']));
+        $base_path = ($current_dir === 'errors') ? dirname(dirname($_SERVER['SCRIPT_NAME'])) : dirname($_SERVER['SCRIPT_NAME']);
+        if ($base_path === DIRECTORY_SEPARATOR) $base_path = '';
+    ?>
     <div class="error-wrapper">
         <div class="error-code">404</div>
         <h1>¿Te has perdido?</h1>
         <p>No pudimos encontrar la página que buscas. Tal vez el enlace esté roto o haya sido movido permanentemente.</p>
         
         <div class="btn-container">
-            <a href="/joskar/dashboard.php" class="btn btn-primary">
+            <a href="<?php echo $base_path; ?>/dashboard.php" class="btn btn-primary">
                 <i class="fas fa-house"></i> Ir al Dashboard
             </a>
             <a href="javascript:history.back()" class="btn btn-outline">
