@@ -57,19 +57,32 @@ if (empty($_SESSION['csrf_token'])) {
 
         // Check for login errors in URL params
         const params = new URLSearchParams(window.location.search);
+        window.lastLoginError = null;
+
         if (params.has('error')) {
             const errorBox = document.getElementById('login-error');
             errorBox.style.display = 'block';
             const e = params.get('error');
+            window.lastLoginError = e;
+            
+            let errorMsg = 'Usuario o contraseña incorrectos.';
             if (e === 'db') {
-                errorBox.textContent = 'Error de conexión con la base de datos.';
+                errorMsg = 'Error de conexión con la base de datos.';
             } else if (e === 'csrf') {
-                errorBox.textContent = 'Sesión expirada. Por favor intenta de nuevo.';
+                errorMsg = 'Sesión expirada. Por favor intenta de nuevo.';
             } else if (e === 'inactive' || e === 'disabled') {
-                errorBox.textContent = 'Tu cuenta está deshabilitada. Contacta al administrador.';
+                errorMsg = 'Tu cuenta está deshabilitada. Contacta al administrador.';
             } else if (e === 'remote') {
-                errorBox.textContent = 'Este usuario no tiene permitido el acceso remoto.';
+                errorMsg = 'Este usuario no tiene permitido el acceso remoto.';
             }
+
+            errorBox.textContent = errorMsg;
+            console.error('[Login Error Detail]:', {
+                code: e,
+                message: errorMsg,
+                timestamp: new Date().toISOString()
+            });
+            console.info('Puedes consultar el código del error escribiendo: window.lastLoginError');
         }
     </script>
     <script src="assets/js/app.js"></script>
