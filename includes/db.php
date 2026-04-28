@@ -12,14 +12,13 @@ $config = [
     'host' => $_env['DB_HOST'] ?? '127.0.0.1',
     'user' => $_env['DB_USER'] ?? 'root',
     'pass' => $_env['DB_PASS'] ?? '',
-    'db'   => $_env['DB_NAME'] ?? 'datasis2',
+    'db'   => $_env['DB_NAME'] ?? 'datasis',
     'port' => $_env['DB_PORT'] ?? '3306',
 ];
 
 try {
-    // If host is localhost or 127.0.0.1, try to use 127.0.0.1 via TCP to avoid socket issues
-    $dsn_host = ($config['host'] === 'localhost' || $config['host'] === '127.0.0.1') ? '127.0.0.1' : $config['host'];
-    $dsn = "mysql:host={$dsn_host};port={$config['port']};dbname={$config['db']};charset=utf8mb4";
+    // Use the host from config directly
+    $dsn = "mysql:host={$config['host']};port={$config['port']};dbname={$config['db']};charset=utf8mb4";
     
     $pdo = new PDO($dsn, $config['user'], $config['pass'], [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

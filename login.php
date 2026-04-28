@@ -42,11 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($valid) {
+            /* 
             if (strtoupper(trim((string)$userData['np_activo'])) !== 'S') {
                 header('Location: index.php?error=inactive');
                 exit;
             }
+            */
 
+            /*
             $ip = $_SERVER['REMOTE_ADDR'] ?? '';
             $isRemote = filter_var(
                 $ip,
@@ -58,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: index.php?error=remote');
                 exit;
             }
+            */
 
             session_regenerate_id(true);
             $_SESSION['logged_in']    = true;
