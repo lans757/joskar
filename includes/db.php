@@ -12,7 +12,7 @@ $config = [
     'host' => $_env['DB_HOST'] ?? '127.0.0.1',
     'user' => $_env['DB_USER'] ?? 'root',
     'pass' => $_env['DB_PASS'] ?? '',
-    'db'   => $_env['DB_NAME'] ?? 'datasiss',
+    'db'   => $_env['DB_NAME'] ?? 'datasis',
     'port' => $_env['DB_PORT'] ?? '3306',
 ];
 
