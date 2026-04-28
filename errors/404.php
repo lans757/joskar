@@ -64,6 +64,7 @@
             margin-bottom: 10px;
             background: linear-gradient(135deg, #0ea5e9 0%, #a855f7 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 0 20px var(--primary-glow));
             letter-spacing: -5px;

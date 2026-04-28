@@ -78,6 +78,7 @@
             margin-bottom: 20px;
             background: linear-gradient(135deg, #f43f5e 0%, #fb923c 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -182,7 +183,11 @@
 
         <div class="alert-box">
             <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
-            Tip: A veces una actualización rápida de la página soluciona problemas temporales de conexión.
+            <?php if (isset($pdo_error)): ?>
+                <strong>Error de conexión:</strong> <?php echo htmlspecialchars($pdo_error); ?>
+            <?php else: ?>
+                Tip: A veces una actualización rápida de la página soluciona problemas temporales de conexión.
+            <?php endif; ?>
         </div>
     </div>
 </body>

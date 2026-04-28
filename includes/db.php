@@ -12,7 +12,7 @@ $config = [
     'host' => $_env['DB_HOST'] ?? '127.0.0.1',
     'user' => $_env['DB_USER'] ?? 'root',
     'pass' => $_env['DB_PASS'] ?? '',
-    'db'   => $_env['DB_NAME'] ?? 'datasis',
+    'db'   => $_env['DB_NAME'] ?? 'datasis2',
     'port' => $_env['DB_PORT'] ?? '3306',
 ];
 
@@ -42,6 +42,7 @@ try {
     }
 
     if (file_exists(__DIR__ . '/../errors/500.php')) {
+        $pdo_error = $e->getMessage();
         include __DIR__ . '/../errors/500.php';
     } else {
         echo "<h1>Error 500: Database Connection Failed</h1>";
