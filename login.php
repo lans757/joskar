@@ -42,26 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($valid) {
-            /* 
-            if (strtoupper(trim((string)$userData['np_activo'])) !== 'S') {
-                header('Location: index.php?error=inactive');
-                exit;
-            }
-            */
 
-            /*
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-            $isRemote = filter_var(
-                $ip,
-                FILTER_VALIDATE_IP,
-                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-            ) !== false;
-
-            if ($isRemote && strtoupper(trim((string)$userData['np_remoto'])) !== 'S') {
-                header('Location: index.php?error=remote');
-                exit;
-            }
-            */
 
             session_regenerate_id(true);
             $_SESSION['logged_in']    = true;
