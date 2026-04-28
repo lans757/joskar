@@ -21,29 +21,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $stmt = $pdo->prepare(
-            "SELECT u.us_codigo, u.us_nombre, u.supervisor, u.us_clave,
-                    COALESCE(a.activo, 'S') AS np_activo,
-                    COALESCE(a.remoto, 'N') AS np_remoto
-             FROM usuario u
-             LEFT JOIN notipro_acceso a ON a.us_codigo = u.us_codigo
-             WHERE u.us_codigo = ?"
+            "SELECT us_codigo, us_nombre, supervisor, us_clave, activo
+             FROM usuario 
+             WHERE us_codigo = ? AND activo = 'S'"
         );
         $stmt->execute([$user]);
         $userData = $stmt->fetch();
 
         $valid = false;
         if ($userData) {
-            $stored = (string)$userData['us_clave'];
-            // Proteo guarda la clave en texto plano en usuario.us_clave (CHAR(12)).
-            // No re-hasheamos: la columna trunca a 12 y corrompe cualquier hash bcrypt.
-            if (hash_equals($stored, $pass)) {
+            $clave = (string)$userData['us_clave'];
+            
+            // Lógica de ProteoERP: Si la clave no es un hash, se hashea y se actualiza en la DB
+            $info = password_get_info($clave);
+            if ($info['algo'] === null) {
+                $claveHash = password_hash($clave, PASSWORD_DEFAULT);
+                $updateStmt = $pdo->prepare("UPDATE usuario SET us_clave = ? WHERE us_codigo = ?");
+                $updateStmt->execute([$claveHash, $userData['us_codigo']]);
+                $clave = $claveHash;
+            }
+
+            // Verificación de la clave usando password_verify
+            if (password_verify($pass, $clave)) {
                 $valid = true;
             }
         }
 
         if ($valid) {
-
-
             session_regenerate_id(true);
             $_SESSION['logged_in']    = true;
             $_SESSION['user_id']      = $userData['us_codigo'];
