@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($userData) {
             $clave = (string)$userData['us_clave'];
             
-            // Verificación de la clave en texto plano (sin encriptar) según lo solicitado
+            // Verificación de la clave estrictamente en texto plano
             if ($pass === $clave) {
                 $valid = true;
             }
