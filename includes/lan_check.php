@@ -21,17 +21,15 @@ function is_local_ip($ip) {
 
 $client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
 
-// Definir páginas públicas y usuarios remotos permitidos
+// Definir páginas públicas
 $current_script = basename($_SERVER['PHP_SELF']);
 $public_scripts = ['index.php', 'login.php'];
-$remote_users = ['hericson', 'lcaripa', 'admin',]; // Agrega aquí otros usuarios si es necesario
 
 // Iniciar sesión si no está iniciada para verificar el usuario
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-$logged_user = strtolower(trim($_SESSION['user_id'] ?? ''));
-$is_allowed_remote_user = (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && in_array($logged_user, $remote_users));
+$is_allowed_remote_user = (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_SESSION['remoto']) && $_SESSION['remoto'] === 'S');
 $is_public_page = in_array($current_script, $public_scripts);
 
 if (!is_local_ip($client_ip) && !$is_public_page && !$is_allowed_remote_user) {

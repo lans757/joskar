@@ -20,11 +20,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pass = $_POST['password'] ?? '';
 
     try {
-        $stmt = $pdo->prepare(
-            "SELECT us_codigo, us_nombre, supervisor, us_clave, activo
-             FROM usuario 
-             WHERE us_codigo = ? AND activo = 'S'"
-        );
+            $stmt = $pdo->prepare(
+                "SELECT us_codigo, us_nombre, supervisor, us_clave, activo, remoto
+                 FROM usuario 
+                 WHERE us_codigo = ? AND activo = 'S'"
+            );
         $stmt->execute([$user]);
         $userData = $stmt->fetch();
 
@@ -41,9 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($valid) {
             require_once 'includes/lan_check.php';
             $client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
-            $remote_users = ['hericson', 'lcaripa', 'admin']; // Lista de usuarios permitidos remotamente
             
-            if (!is_local_ip($client_ip) && !in_array(strtolower(trim($userData['us_codigo'])), $remote_users)) {
+            $es_remoto_permitido = (strtoupper(trim((string)$userData['remoto'])) === 'S');
+            
+            if (!is_local_ip($client_ip) && !$es_remoto_permitido) {
                 header('Location: index.php?error=remote');
                 exit;
             }
@@ -53,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id']      = $userData['us_codigo'];
             $_SESSION['user_name']    = trim($userData['us_nombre']);
             $_SESSION['is_supervisor'] = ($userData['supervisor'] === 'S');
+            $_SESSION['remoto']       = strtoupper(trim((string)$userData['remoto']));
             header('Location: dashboard.php');
             exit;
         }
