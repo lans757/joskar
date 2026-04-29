@@ -9,8 +9,8 @@ $clave = (string)$userData['us_clave'];
 $info = password_get_info($clave);
 if ($info['algo'] === null) {
     $claveHash = password_hash($clave, PASSWORD_DEFAULT);
-    $updateStmt = $pdo->prepare("UPDATE usuario SET us_clave = ? WHERE us_codigo = ?");
-    $updateStmt->execute([$claveHash, $userData['us_codigo']]);
+    // $updateStmt = $pdo->prepare("UPDATE usuario SET us_clave = ? WHERE us_codigo = ?");
+    // $updateStmt->execute([$claveHash, $userData['us_codigo']]);
     $clave = $claveHash;
 }
 

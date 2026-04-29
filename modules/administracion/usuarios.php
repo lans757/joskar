@@ -78,8 +78,10 @@ if (isset($_POST['ajax']) && $_POST['ajax'] === 'toggle') {
         }
 
         $nuevo = $row['us_activo'] ? 0 : 1;
+        /*
         $upd = $pdo->prepare("UPDATE usuario SET us_activo = ? WHERE us_codigo = ?");
         $upd->execute([$nuevo, $target]);
+        */
 
         echo json_encode(['ok' => true, 'activo' => $nuevo]);
     } catch (PDOException $e) {

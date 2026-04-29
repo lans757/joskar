@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-const NOTIPRO_ADMIN_USER = 'PRUEBAS';
+const NOTIPRO_ADMIN_USERS = ['PRUEBAS', 'LCARIPA'];
 
 if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     $prefix = isset($path_prefix) ? $path_prefix : '';
@@ -11,7 +11,7 @@ if (empty($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
     exit;
 }
 
-if (!isset($_SESSION['user_id']) || strcasecmp(trim((string)$_SESSION['user_id']), NOTIPRO_ADMIN_USER) !== 0) {
+if (!isset($_SESSION['user_id']) || !in_array(strtoupper(trim((string)$_SESSION['user_id'])), NOTIPRO_ADMIN_USERS)) {
     http_response_code(403);
     $prefix = isset($path_prefix) ? $path_prefix : '';
     echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>403</title>';

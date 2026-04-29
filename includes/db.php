@@ -2,9 +2,20 @@
 $_env_file = __DIR__ . '/../.env';
 $_env = [];
 if (file_exists($_env_file)) {
-    $parsed = parse_ini_file($_env_file);
-    if ($parsed !== false) {
-        $_env = $parsed;
+    $lines = file($_env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        // Ignorar comentarios
+        if (strpos($line, '#') === 0 || empty($line)) continue;
+        
+        // Dividir solo por el primer '='
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            // Limpiar espacios y comillas del valor
+            $value = trim($value, " \t\n\r\0\x0B\"'");
+            $_env[$key] = $value;
+        }
     }
 }
 

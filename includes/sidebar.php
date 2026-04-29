@@ -58,7 +58,7 @@ if (!isset($activePage)) $activePage = "dashboard";
         </li>
         <?php endif; ?>
 
-        <?php if (isset($_SESSION['user_id']) && strcasecmp(trim((string)$_SESSION['user_id']), 'PRUEBAS') === 0): ?>
+        <?php if (isset($_SESSION['user_id']) && (strcasecmp(trim((string)$_SESSION['user_id']), 'PRUEBAS') === 0 || strcasecmp(trim((string)$_SESSION['user_id']), 'LCARIPA') === 0)): ?>
         <hr style="border: none; border-top: 1px solid var(--border-light); margin: 10px 0;">
         <li>
             <a href="<?php echo $path_prefix; ?>modules/admin_notipro/vista_admin_notipro.php" class="<?php echo ($activePage == 'admin_notipro' ? 'active' : ''); ?>">

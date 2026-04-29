@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($targetUser === '') {
             $_SESSION['flash'] = ['type' => 'error', 'msg' => 'Usuario no especificado.'];
-        } elseif (strcasecmp($targetUser, NOTIPRO_ADMIN_USER) === 0) {
+        } elseif (strcasecmp($targetUser, trim((string)$_SESSION['user_id'])) === 0) {
             $_SESSION['flash'] = ['type' => 'error', 'msg' => 'No puedes modificar tu propio acceso de administrador.'];
         } else {
             try {
@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$chk->fetchColumn()) {
                     $_SESSION['flash'] = ['type' => 'error', 'msg' => 'El usuario no existe en Proteo.'];
                 } else {
+                    /* 
                     $stmt = $pdo->prepare(
                         "INSERT INTO notipro_acceso (us_codigo, activo, remoto, updated_by)
                          VALUES (?, ?, ?, ?)
@@ -37,7 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                  updated_by = VALUES(updated_by)"
                     );
                     $stmt->execute([$targetUser, $activo, $remoto, $_SESSION['user_id']]);
-                    $_SESSION['flash'] = ['type' => 'ok', 'msg' => "Permisos actualizados para {$targetUser}."];
+                    */
+                    $_SESSION['flash'] = ['type' => 'ok', 'msg' => "(Simulado) Permisos actualizados para {$targetUser}."];
                 }
             } catch (Exception $e) {
                 error_log('admin_notipro update: ' . $e->getMessage());
@@ -100,7 +102,7 @@ include('../../includes/sidebar.php');
                 </thead>
                 <tbody>
                 <?php foreach ($rows as $r): ?>
-                    <?php $isSelf = strcasecmp($r['us_codigo'], NOTIPRO_ADMIN_USER) === 0; ?>
+                    <?php $isSelf = strcasecmp($r['us_codigo'], trim((string)$_SESSION['user_id'])) === 0; ?>
                     <tr>
                         <td><strong><?php echo htmlspecialchars($r['us_codigo']); ?></strong></td>
                         <td><?php echo htmlspecialchars(trim((string)$r['us_nombre'])); ?></td>

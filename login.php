@@ -39,6 +39,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($valid) {
+            require_once 'includes/lan_check.php';
+            $client_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+            $remote_users = ['hericson', 'lcaripa', 'admin']; // Lista de usuarios permitidos remotamente
+            
+            if (!is_local_ip($client_ip) && !in_array(strtolower(trim($userData['us_codigo'])), $remote_users)) {
+                header('Location: index.php?error=remote');
+                exit;
+            }
+
             session_regenerate_id(true);
             $_SESSION['logged_in']    = true;
             $_SESSION['user_id']      = $userData['us_codigo'];
