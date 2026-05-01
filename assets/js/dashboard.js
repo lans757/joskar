@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+phpdocument.addEventListener('DOMContentLoaded', () => {
     const tableAlertasBody    = document.querySelector('#table-alertas tbody');
     const tableMovimientosBody = document.querySelector('#table-movimientos tbody');
     const paginationControls  = document.getElementById('pagination-controls');
@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterProv          = document.getElementById('filter-prov');
 
     const isVista  = window.location.pathname.includes('vistas/');
-    const apiBase  = isVista ? '../api.php' : 'api.php';
-    const expBase  = isVista ? '../export_excel.php' : 'export_excel.php';
+    const apiBase  = isVista ? '../api.php' : '../../api.php';
+    const expBase  = isVista ? '../export_excel.php' : '../../export_excel.php';
 
     let currentTab  = 'alertas';
     let currentPage = 1;
