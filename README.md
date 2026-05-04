@@ -2,6 +2,13 @@
 
 Esta guía detalla los pasos necesarios para clonar y configurar este proyecto en una computadora nueva utilizando **XAMPP**.
 
+## 🌿 Estructura de Ramas
+
+Este proyecto utiliza dos ramas principales para el flujo de trabajo:
+
+- **`main` (Producción)**: Esta es la rama principal y estable. Contiene el código que se despliega en el entorno de producción. **No se debe desarrollar directamente en esta rama**.
+- **`dev` (Desarrollo)**: Esta rama se utiliza para el desarrollo activo, integrar nuevas características y realizar pruebas antes de enviarlas a producción. Todo el desarrollo debe realizarse aquí.
+
 ## 📋 Requisitos Previos
 
 Antes de comenzar, asegúrate de tener instalado:
