@@ -1,0 +1,2 @@
+# Ignorar la carpeta completa de configuración (donde están database.php, etc.)
+includes/db.php
