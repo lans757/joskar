@@ -118,13 +118,8 @@ try {
     $consolidado = $stmt_res->fetchAll(PDO::FETCH_ASSOC);
 
     // Detalle Auditoría (Main Table)
-    $stmt_det = $pdo->prepare("SELECT s.transac as gestion, s.fecha as fecha_gestion, s.fecha_op as f_banco,
-            s.cod_cli, s.nombre as cliente,
-            COALESCE(NULLIF(b.banco,''),'EFECTIVO') as banco,
-            p.tipo as tipo_pago, COALESCE(p.status, 'C') as estatus, s.tasa,
-            COALESCE(p.monto, s.monto) as monto_bs,
-            COALESCE(p.montod,CASE WHEN s.tasa>0 THEN ROUND(COALESCE(p.monto,s.monto)/s.tasa,2) ELSE COALESCE(s.montod,0) END) as monto_usd,
-            s.observa1 as descrip
+    $stmt_det = $pdo->prepare("SELECT s.transac, s.fecha, s.tipo_doc as tipo, s.numero, s.control, s.cod_cli as cliente, 
+            s.nombre, s.monto, s.impuesto as iva, s.exento, s.observa1 as descripcion, COALESCE(p.status, 'C') as estatus
         FROM smov s LEFT JOIN sfpa p ON s.transac=p.transac
         LEFT JOIN banc b ON b.codbanc=COALESCE(NULLIF(p.banco,''),s.banco)
         $where ORDER BY s.fecha DESC, s.transac DESC LIMIT $limit OFFSET $offset");
@@ -280,48 +275,51 @@ function renderEstatus($e) {
             <table id="table-audit">
                 <thead>
                     <tr>
-                        <th>ID GESTIÓN</th>
-                        <th>FECHA GESTIÓN</th>
-                        <th>FEC. BANCO</th>
-                        <th>CLIENTE / PAGADOR</th>
-                        <th>BANCO / MÉTODO</th>
-                        <th class="r">MONTO (BS)</th>
-                        <th class="r">MONTO (USD)</th>
-                        <th class="c">ESTATUS</th>
+                        <th class="c">FECHA</th>
+                        <th class="c">TIPO</th>
+                        <th>NÚMERO</th>
+                        <th>CONTROL</th>
+                        <th>CLIENTE</th>
+                        <th>NOMBRE</th>
+                        <th class="r">MONTO</th>
+                        <th class="r">IVA</th>
+                        <th class="r">EXENTO</th>
+                        <th>DESCRIPCIÓN</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($movimientos)): ?>
-                        <tr><td colspan="8" class="text-center" style="padding:48px; opacity:0.5;">No se encontraron registros bajo los filtros actuales.</td></tr>
+                        <tr><td colspan="10" class="text-center" style="padding:48px; opacity:0.5;">No se encontraron registros bajo los filtros actuales.</td></tr>
                     <?php else: ?>
                         <?php foreach($movimientos as $r): 
                             $isHL=(!empty($r['estatus']) && strtoupper($r['estatus'])!=='C');
                         ?>
-                        <tr class="clickable <?php echo $isHL?'row-total':'';?>" onclick="abrirModal('<?php echo $r['gestion'];?>')">
-                            <td><span class="code-badge"><?php echo $r['gestion'];?></span></td>
-                            <td><?php echo date('d/m/Y', strtotime($r['fecha_gestion']));?></td>
-                            <td><?php echo $r['f_banco'] ? date('d/m/Y', strtotime($r['f_banco'])) : '—'; ?></td>
-                            <td class="product-name">
-                                <div style="font-weight:700; color:var(--text-main);"><?php echo htmlspecialchars($r['cliente']);?></div>
-                                <div style="font-size:0.75rem; color:var(--text-muted);"><?php echo $r['cod_cli'];?> &bull; <?php echo htmlspecialchars($r['descrip']??'');?></div>
-                            </td>
-                            <td><?php echo renderBancoBadge($r['banco']); ?></td>
-                            <td class="r" style="font-weight:700;">Bs. <?php echo number_format($r['monto_bs'], 2, ',', '.'); ?></td>
-                            <td class="r" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($r['monto_usd'], 2, '.', ','); ?></td>
-                            <td class="c"><?php echo renderEstatus($r['estatus']??'');?></td>
+                        <tr class="clickable <?php echo $isHL?'row-total':'';?>" onclick="abrirModal('<?php echo $r['transac'];?>')">
+                            <td class="c"><?php echo date('d/m/Y', strtotime($r['fecha']));?></td>
+                            <td class="c"><span class="code-badge"><?php echo htmlspecialchars($r['tipo']);?></span></td>
+                            <td><?php echo htmlspecialchars($r['numero']);?></td>
+                            <td><?php echo htmlspecialchars($r['control']);?></td>
+                            <td><?php echo htmlspecialchars($r['cliente']);?></td>
+                            <td style="font-weight:700; color:var(--text-main); font-size:0.8rem;"><?php echo htmlspecialchars($r['nombre']);?></td>
+                            <td class="r" style="font-weight:700;">Bs. <?php echo number_format($r['monto'], 2, ',', '.'); ?></td>
+                            <td class="r">Bs. <?php echo number_format($r['iva'], 2, ',', '.'); ?></td>
+                            <td class="r">Bs. <?php echo number_format($r['exento'], 2, ',', '.'); ?></td>
+                            <td style="font-size:0.75rem; color:var(--text-muted);"><?php echo htmlspecialchars($r['descripcion']??'');?></td>
                         </tr>
                         <?php endforeach;?>
                     <?php endif; ?>
                 </tbody>
                 <tfoot>
                     <?php
-                    $page_bs  = array_sum(array_column($movimientos,'monto_bs'));
-                    $page_usd = array_sum(array_column($movimientos,'monto_usd'));
+                    $page_bs  = array_sum(array_column($movimientos,'monto'));
+                    $page_iva = array_sum(array_column($movimientos,'iva'));
+                    $page_exe = array_sum(array_column($movimientos,'exento'));
                     ?>
                     <tr>
-                        <td colspan="5" class="text-right" style="opacity:0.7;"><i class="fas fa-sigma"></i> SUBTOTAL PÁGINA (<?php echo count($movimientos);?> ops)</td>
+                        <td colspan="6" class="text-right" style="opacity:0.7;"><i class="fas fa-sigma"></i> SUBTOTAL PÁGINA (<?php echo count($movimientos);?> ops)</td>
                         <td class="r" style="font-weight:800;">Bs. <?php echo number_format($page_bs,2,',','.');?></td>
-                        <td class="r" style="font-weight:800; color:var(--accent-green);">$ <?php echo number_format($page_usd,2,'.',',');?></td>
+                        <td class="r" style="font-weight:800;">Bs. <?php echo number_format($page_iva,2,',','.');?></td>
+                        <td class="r" style="font-weight:800;">Bs. <?php echo number_format($page_exe,2,',','.');?></td>
                         <td></td>
                     </tr>
                 </tfoot>
