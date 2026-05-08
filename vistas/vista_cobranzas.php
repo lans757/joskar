@@ -65,6 +65,7 @@ include('../includes/sidebar.php');
 // --- Filtros de búsqueda ---
 $f_ini = $_GET['f_ini'] ?? date('Y-m-01');
 $f_fin = $_GET['f_fin'] ?? date('Y-m-d');
+$f_tipo_fec = $_GET['f_tipo_fec'] ?? 'registro';
 $f_banco = $_GET['f_banco'] ?? '';
 $f_txt  = $_GET['f_txt']  ?? '';
 
@@ -80,6 +81,7 @@ try {
     $banco_mapper = $stmt_banc->fetchAll(PDO::FETCH_KEY_PAIR);
 
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
+    $date_col = ($f_tipo_fec === 'fbanco') ? 'DATE(aa.fbanco)' : 'DATE(aa.fechagestion)';
     $where_add = "";
     if (!empty($f_banco)) { 
         $where_add .= " AND base.codbanc = :banco";  
@@ -117,7 +119,7 @@ try {
                     LEFT JOIN banc c ON a.codbanc = c.codbanc 
                     WHERE a.multip = 'N'
                 ) aa 
-                WHERE DATE(aa.estampa) >= :ini AND DATE(aa.estampa) <= :fin AND aa.estado = 'C'
+                WHERE $date_col >= :ini AND $date_col <= :fin AND aa.estado = 'C'
             ) aa 
             WHERE aa.responsable <> '01'
         ) base 
@@ -214,11 +216,18 @@ function renderEstatus($e) {
         </div>
         <form method="GET" class="filters-row">
             <div class="filter-group">
-                <label>Fecha Desde</label>
+                <label>Filtrar Por</label>
+                <select name="f_tipo_fec">
+                    <option value="registro" <?php echo $f_tipo_fec=='registro'?'selected':'';?>>Fecha Gestión</option>
+                    <option value="fbanco" <?php echo $f_tipo_fec=='fbanco'?'selected':'';?>>Fecha Banco</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Desde</label>
                 <input type="date" name="f_ini" value="<?php echo $f_ini; ?>">
             </div>
             <div class="filter-group">
-                <label>Fecha Hasta</label>
+                <label>Hasta</label>
                 <input type="date" name="f_fin" value="<?php echo $f_fin; ?>">
             </div>
             <div class="filter-group">
