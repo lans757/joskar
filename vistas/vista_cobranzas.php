@@ -11,50 +11,41 @@ require_once('../includes/db.php');
 // --- Manejo AJAX: Detalle de Movimiento ---
 // DEBE IR AL PRINCIPIO PARA EVITAR SALIDA HTML EN LA RESPUESTA JSON
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle') {
-    $transac = $_GET['transac'] ?? '';
+    $gestion = $_GET['gestion'] ?? '';
     header('Content-Type: application/json');
     try {
-        // Datos del movimiento principal (pago)
+        // Datos de la gestión principal
         $stmt_mov = $pdo->prepare(
-            "SELECT s.transac, s.fecha, s.fecha_op as fecpag, s.cod_cli, s.nombre,
-                    s.tasa, p.status as estatus,
-                    COALESCE(p.monto, s.monto) as monto_bs,
-                    COALESCE(p.montod,
-                        CASE WHEN s.tasa > 0
-                             THEN ROUND(COALESCE(p.monto, s.monto) / s.tasa, 2)
-                             ELSE COALESCE(s.montod, 0) END
-                    ) as monto_usd,
-                    COALESCE(NULLIF(b.banco,''), 'EFECTIVO') as banco,
-                    p.tipo as tipo_pago,
-                    s.observa1 as descrip
-             FROM smov s
-             LEFT JOIN sfpa p ON s.transac = p.transac
-             LEFT JOIN banc b ON b.codbanc = COALESCE(NULLIF(p.banco,''), s.banco)
-             WHERE s.transac = :transac
+            "SELECT a.id as gestion, a.fecha as fechagestion, a.fbanco, b.cliente as cod_cli, b.nombre as cliente, 
+                    a.status as estatus, a.monto as monto_bs, 
+                    if(a.mdolar <> 0, a.mdolar, ROUND(a.monto / (SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= a.fbanco ORDER BY fecha DESC LIMIT 1), 2)) as monto_usd,
+                    COALESCE(NULLIF(c.banco,''), 'EFECTIVO') as banco, a.tipo_doc as tipo_pago, a.descrip
+             FROM gecli a 
+             JOIN scli b ON a.cliente = b.id 
+             LEFT JOIN banc c ON a.codbanc = c.codbanc
+             WHERE a.id = :gestion
              LIMIT 1"
         );
-        $stmt_mov->execute([':transac' => $transac]);
+        $stmt_mov->execute([':gestion' => $gestion]);
         $mov = $stmt_mov->fetch(PDO::FETCH_ASSOC);
 
-        // Facturas relacionadas (si las hay)
-        // Eliminado f.vendedor ya que no existe en el esquema sfac actual
+        // Facturas relacionadas a esta gestión a través de smov
         $stmt_fac = $pdo->prepare(
-            "SELECT f.numero   as factura,
-                    f.fecha    as fecha_fac,
-                    f.cod_cli,
-                    f.nombre   as cliente,
-                    f.totalg   as total_bs,
+            "SELECT f.numero as factura, f.fecha as fecha_fac, f.cod_cli, f.nombre as cliente, 
+                    f.totalg as total_bs, 
                     CASE WHEN f.tasa > 0 THEN ROUND(f.totalg / f.tasa, 2) ELSE 0 END as total_usd,
-                    0          as saldo_bs,
-                    f.status   as estatus_fac
+                    0 as saldo_bs, f.status as estatus_fac
              FROM sfac f
-             WHERE f.transac = :transac
-                OR f.numero IN (
-                    SELECT numero FROM sitems WHERE transac = :transac2
-                )
+             JOIN smov s ON s.cod_cli = f.cod_cli AND (
+                 s.observa1 LIKE CONCAT('%', f.numero, '%') OR 
+                 s.numero = f.numero OR
+                 s.num_ref = f.numero
+             )
+             WHERE s.gestion = :gestion AND s.tipo_doc IN ('AB','AN')
+             GROUP BY f.numero
              ORDER BY f.fecha DESC"
         );
-        $stmt_fac->execute([':transac' => $transac, ':transac2' => $transac]);
+        $stmt_fac->execute([':gestion' => $gestion]);
         $facturas = $stmt_fac->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode(['mov' => $mov, 'facturas' => $facturas]);
@@ -89,17 +80,53 @@ try {
     $banco_mapper = $stmt_banc->fetchAll(PDO::FETCH_KEY_PAIR);
 
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
-    $where  = "WHERE s.fecha >= :ini AND s.fecha <= :fin";
-    if (!empty($f_banco)) { $where .= " AND b.codbanc = :banco";  $params[':banco'] = $f_banco; }
-    if (!empty($f_txt))   { $where .= " AND (s.nombre LIKE :txt OR s.cod_cli LIKE :txt OR s.transac LIKE :txt)"; $params[':txt'] = "%$f_txt%"; }
+    $where_add = "";
+    if (!empty($f_banco)) { 
+        $where_add .= " AND base.codbanc = :banco";  
+        $params[':banco'] = $f_banco; 
+    }
+    if (!empty($f_txt))   { 
+        $where_add .= " AND (base.cliente LIKE :txt OR base.cod_cli LIKE :txt OR base.gestion LIKE :txt)"; 
+        $params[':txt'] = "%$f_txt%"; 
+    }
+
+    $sql_agestion = "
+        SELECT 
+            base.descrip, base.gestion, base.cod_cli, base.cliente, base.estado, base.tipo_doc, base.monto, base.tasa, base.montod,
+            COALESCE(NULLIF(base.banco,''),'EFECTIVO') as banco, base.codbanc, base.fbanco, base.nombrep, base.fechagestion, base.estampa,
+            base.numeros_smov, base.vendedor_smov, base.vend_scli, base.responsable, bb.nombre as responsnombre 
+        FROM ( 
+            SELECT aa.descrip,aa.gestion,aa.cod_cli,aa.cliente,aa.estado,aa.tipo_doc,aa.monto,aa.tasa,aa.montod,aa.banco,aa.codbanc,aa.fbanco,aa.nombrep,aa.fechagestion,aa.numeros_smov,aa.vendedor_smov,aa.vend_scli,aa.estampa,
+            IF(aa.vendedor_smov='74,96','74',IF(aa.vendedor_smov='86,98','98',IF(aa.vendedor_smov='100,86','100',aa.responsable))) as responsable 
+            FROM ( 
+                SELECT aa.descrip,aa.gestion,aa.cod_cli,aa.cliente,aa.estado,aa.tipo_doc,aa.monto,aa.tasa,aa.montod,aa.banco,aa.codbanc,aa.fbanco,aa.nombrep,aa.fechagestion,aa.numeros_smov,aa.vendedor_smov,aa.vend_scli,aa.estampa, 
+                IF( COALESCE( IF(FIND_IN_SET(aa.vend_scli, aa.vendedor_smov) > 0, aa.vend_scli, aa.vendedor_smov), aa.vend_scli ) = '01', aa.vend_scli, COALESCE( IF(FIND_IN_SET(aa.vend_scli, aa.vendedor_smov) > 0, aa.vend_scli, aa.vendedor_smov), aa.vend_scli ) ) AS responsable 
+                FROM (
+                    SELECT a.id AS gestion, b.cliente AS cod_cli, b.nombre AS cliente, a.status AS estado, a.tipo_doc, a.monto, a.descrip, 
+                    (SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= a.fbanco ORDER BY fecha DESC LIMIT 1) tasa, 
+                    if(a.mdolar <> 0, a.mdolar, ROUND(a.monto / (SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= a.fbanco ORDER BY fecha DESC LIMIT 1), 2)) montod, 
+                    c.banco, a.codbanc, t.nombre nombrep, a.fbanco, a.fecha AS fechagestion, s.estampa, s.numeros_smov, s.vendedor_smov, b.vendedor AS vend_scli, 
+                    IFNULL( ( SELECT GROUP_CONCAT(act.vendedor ORDER BY act.vendedor SEPARATOR ',') FROM ( SELECT DISTINCT TRIM(vendedor) AS vendedor FROM scli WHERE tipo > 0 AND vendedor IS NOT NULL AND TRIM(vendedor) <> '' ) AS act WHERE FIND_IN_SET(act.vendedor, s.vendedor_smov) ), b.vendedor ) AS responsable 
+                    FROM gecli a 
+                    JOIN scli b ON a.cliente = b.id 
+                    LEFT JOIN tarjeta t ON a.fpago = t.tipo 
+                    LEFT JOIN ( 
+                        SELECT tipo_doc, cod_cli, gestion, estampa, GROUP_CONCAT(DISTINCT numero ORDER BY numero SEPARATOR ',') AS numeros_smov, GROUP_CONCAT(DISTINCT vendedor ORDER BY vendedor SEPARATOR ',') AS vendedor_smov 
+                        FROM smov WHERE tipo_doc IN ('AB','AN') GROUP BY cod_cli, gestion 
+                    ) s ON s.cod_cli = b.cliente AND s.gestion = a.id 
+                    LEFT JOIN banc c ON a.codbanc = c.codbanc 
+                    WHERE a.multip = 'N'
+                ) aa 
+                WHERE DATE(aa.estampa) >= :ini AND DATE(aa.estampa) <= :fin AND aa.estado = 'C'
+            ) aa 
+            WHERE aa.responsable <> '01'
+        ) base 
+        LEFT JOIN vend bb ON base.responsable=bb.vendedor
+        WHERE 1=1 $where_add
+    ";
 
     // KPIs
-    $stmt_tot = $pdo->prepare("SELECT COUNT(*) as total_ops,
-            SUM(COALESCE(p.monto, s.monto)) as total_bs,
-            SUM(COALESCE(p.montod, CASE WHEN s.tasa > 0 THEN ROUND(COALESCE(p.monto,s.monto)/s.tasa,2) ELSE COALESCE(s.montod,0) END)) as total_usd
-        FROM smov s LEFT JOIN sfpa p ON s.transac=p.transac
-        LEFT JOIN banc b ON b.codbanc=COALESCE(NULLIF(p.banco,''),s.banco) AND b.activo='S'
-        $where");
+    $stmt_tot = $pdo->prepare("SELECT COUNT(*) as total_ops, SUM(monto) as total_bs, SUM(montod) as total_usd FROM ($sql_agestion) AS result");
     $stmt_tot->execute($params);
     $kpis      = $stmt_tot->fetch(PDO::FETCH_ASSOC);
     $total_ops = $kpis['total_ops'] ?? 0;
@@ -107,22 +134,12 @@ try {
     $total_usd = $kpis['total_usd'] ?? 0;
 
     // Resumen Consolidado (Small Table)
-    $stmt_res = $pdo->prepare("SELECT COALESCE(NULLIF(b.banco,''),'EFECTIVO') as banco_pago,
-            p.tipo as tipo_pago, COUNT(*) as ops,
-            SUM(COALESCE(p.monto,s.monto)) as total_bs,
-            SUM(COALESCE(p.montod,CASE WHEN s.tasa>0 THEN ROUND(COALESCE(p.monto,s.monto)/s.tasa,2) ELSE COALESCE(s.montod,0) END)) as total_usd
-        FROM smov s LEFT JOIN sfpa p ON s.transac=p.transac
-        LEFT JOIN banc b ON b.codbanc=COALESCE(NULLIF(p.banco,''),s.banco) AND b.activo='S'
-        $where GROUP BY banco_pago, tipo_pago ORDER BY total_usd DESC");
+    $stmt_res = $pdo->prepare("SELECT banco as banco_pago, tipo_doc as tipo_pago, COUNT(*) as ops, SUM(monto) as total_bs, SUM(montod) as total_usd FROM ($sql_agestion) AS result GROUP BY banco, tipo_doc ORDER BY total_usd DESC");
     $stmt_res->execute($params);
     $consolidado = $stmt_res->fetchAll(PDO::FETCH_ASSOC);
 
     // Detalle Auditoría (Main Table)
-    $stmt_det = $pdo->prepare("SELECT s.transac, s.fecha, s.tipo_doc as tipo, s.numero, s.control, s.cod_cli as cliente, 
-            s.nombre, s.monto, s.impuesto as iva, s.exento, s.observa1 as descripcion, COALESCE(p.status, 'C') as estatus
-        FROM smov s LEFT JOIN sfpa p ON s.transac=p.transac
-        LEFT JOIN banc b ON b.codbanc=COALESCE(NULLIF(p.banco,''),s.banco)
-        $where ORDER BY s.fecha DESC, s.transac DESC LIMIT $limit OFFSET $offset");
+    $stmt_det = $pdo->prepare("$sql_agestion ORDER BY responsnombre ASC, base.fechagestion DESC LIMIT $limit OFFSET $offset");
     $stmt_det->execute($params);
     $movimientos = $stmt_det->fetchAll(PDO::FETCH_ASSOC);
 
@@ -275,36 +292,44 @@ function renderEstatus($e) {
             <table id="table-audit">
                 <thead>
                     <tr>
-                        <th class="c">FECHA</th>
-                        <th class="c">TIPO</th>
-                        <th>NÚMERO</th>
-                        <th>CONTROL</th>
+                        <th class="c">GESTIÓN</th>
+                        <th class="c">FECHA G.</th>
+                        <th>FEC. B.</th>
+                        <th>RESPONSABLE</th>
                         <th>CLIENTE</th>
-                        <th>NOMBRE</th>
-                        <th class="r">MONTO</th>
-                        <th class="r">IVA</th>
-                        <th class="r">EXENTO</th>
-                        <th>DESCRIPCIÓN</th>
+                        <th>BANCO / TIPO</th>
+                        <th class="r">MONTO BS</th>
+                        <th class="r">MONTO USD</th>
+                        <th>ESTATUS</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($movimientos)): ?>
-                        <tr><td colspan="10" class="text-center" style="padding:48px; opacity:0.5;">No se encontraron registros bajo los filtros actuales.</td></tr>
+                        <tr><td colspan="9" class="text-center" style="padding:48px; opacity:0.5;">No se encontraron registros bajo los filtros actuales.</td></tr>
                     <?php else: ?>
                         <?php foreach($movimientos as $r): 
-                            $isHL=(!empty($r['estatus']) && strtoupper($r['estatus'])!=='C');
+                            $isHL=(!empty($r['estado']) && strtoupper($r['estado'])!=='C');
                         ?>
-                        <tr class="clickable <?php echo $isHL?'row-total':'';?>" onclick="abrirModal('<?php echo $r['transac'];?>')">
-                            <td class="c"><?php echo date('d/m/Y', strtotime($r['fecha']));?></td>
-                            <td class="c"><span class="code-badge"><?php echo htmlspecialchars($r['tipo']);?></span></td>
-                            <td><?php echo htmlspecialchars($r['numero']);?></td>
-                            <td><?php echo htmlspecialchars($r['control']);?></td>
-                            <td><?php echo htmlspecialchars($r['cliente']);?></td>
-                            <td style="font-weight:700; color:var(--text-main); font-size:0.8rem;"><?php echo htmlspecialchars($r['nombre']);?></td>
+                        <tr class="clickable <?php echo $isHL?'row-total':'';?>" onclick="abrirModal('<?php echo htmlspecialchars($r['gestion']);?>')">
+                            <td class="c"><span class="code-badge"><?php echo str_pad((int)$r['gestion'], 4, '0', STR_PAD_LEFT);?></span></td>
+                            <td class="c"><?php echo date('d/m/Y', strtotime($r['fechagestion']));?></td>
+                            <td><?php echo !empty($r['fbanco']) ? date('d/m/Y', strtotime($r['fbanco'])) : '—';?></td>
+                            <td style="font-weight:600; font-size:0.8rem;">
+                                <?php echo htmlspecialchars($r['responsable'] . ' - ' . $r['responsnombre']);?>
+                            </td>
+                            <td>
+                                <div style="font-weight:700; color:var(--text-main); font-size:0.8rem;"><?php echo htmlspecialchars($r['cliente']);?></div>
+                                <div style="font-size:0.75rem; color:var(--text-muted);"><?php echo htmlspecialchars($r['cod_cli']);?> &bull; <?php echo htmlspecialchars($r['descrip']??'');?></div>
+                            </td>
+                            <td>
+                                <?php echo renderBancoBadge($r['banco']); ?>
+                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
+                                    TIPO: <strong><?php echo htmlspecialchars($r['tipo_doc']);?></strong>
+                                </div>
+                            </td>
                             <td class="r" style="font-weight:700;">Bs. <?php echo number_format($r['monto'], 2, ',', '.'); ?></td>
-                            <td class="r">Bs. <?php echo number_format($r['iva'], 2, ',', '.'); ?></td>
-                            <td class="r">Bs. <?php echo number_format($r['exento'], 2, ',', '.'); ?></td>
-                            <td style="font-size:0.75rem; color:var(--text-muted);"><?php echo htmlspecialchars($r['descripcion']??'');?></td>
+                            <td class="r" style="font-weight:700; color:var(--accent-green);">$ <?php echo number_format($r['montod'], 2, '.', ','); ?></td>
+                            <td class="c"><?php echo renderEstatus($r['estado']);?></td>
                         </tr>
                         <?php endforeach;?>
                     <?php endif; ?>
@@ -312,14 +337,12 @@ function renderEstatus($e) {
                 <tfoot>
                     <?php
                     $page_bs  = array_sum(array_column($movimientos,'monto'));
-                    $page_iva = array_sum(array_column($movimientos,'iva'));
-                    $page_exe = array_sum(array_column($movimientos,'exento'));
+                    $page_usd = array_sum(array_column($movimientos,'montod'));
                     ?>
                     <tr>
                         <td colspan="6" class="text-right" style="opacity:0.7;"><i class="fas fa-sigma"></i> SUBTOTAL PÁGINA (<?php echo count($movimientos);?> ops)</td>
                         <td class="r" style="font-weight:800;">Bs. <?php echo number_format($page_bs,2,',','.');?></td>
-                        <td class="r" style="font-weight:800;">Bs. <?php echo number_format($page_iva,2,',','.');?></td>
-                        <td class="r" style="font-weight:800;">Bs. <?php echo number_format($page_exe,2,',','.');?></td>
+                        <td class="r" style="font-weight:800; color:var(--accent-green);">$ <?php echo number_format($page_usd,2,'.',',');?></td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -412,13 +435,13 @@ const modal      = document.getElementById('modalOverlay');
 const modalHD    = document.getElementById('modalRef');
 const modalBody  = document.getElementById('modalBody');
 
-async function abrirModal(transac) {
+async function abrirModal(gestion) {
     modal.classList.add('open');
-    modalHD.innerText = 'Cargando gestión #' + transac + '...';
+    modalHD.innerText = 'Cargando gestión #' + gestion + '...';
     modalBody.innerHTML = '<div class="modal-loading"><div class="spinner"></div><span>Solicitando datos...</span></div>';
 
     try {
-        const resp = await fetch(`?ajax=detalle&transac=${transac}`);
+        const resp = await fetch(`?ajax=detalle&gestion=${gestion}`);
         const data = await resp.json();
 
         if (data.error) throw new Error(data.error);
@@ -446,17 +469,17 @@ function renderModalDetail(data) {
     const f = data.facturas;
 
     modalHD.innerHTML = `<div>
-        <h3><i class="fas fa-file-invoice-dollar"></i> Gestión #${m.transac}</h3>
-        <div class="mref">${m.nombre} (${m.cod_cli}) &bull; ${fmtFec(m.fecha)}</div>
+        <h3><i class="fas fa-file-invoice-dollar"></i> Gestión #${String(m.gestion).padStart(4, '0')}</h3>
+        <div class="mref">${m.cliente} (${m.cod_cli}) &bull; ${fmtFec(m.fechagestion)}</div>
     </div>`;
 
     let html = `
         <div class="modal-info-grid">
-            <div class="mic"><span class="lbl">Monto Pagado</span><span class="val gr">${fmtCur(m.monto_bs)}</span></div>
+            <div class="mic"><span class="lbl">Monto Gestionado</span><span class="val gr">${fmtCur(m.monto_bs)}</span></div>
             <div class="mic"><span class="lbl">Equivalente USD</span><span class="val bl">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(m.monto_usd)}</span></div>
             <div class="mic"><span class="lbl">Forma de Pago</span><span class="val">${m.tipo_pago}</span></div>
             <div class="mic"><span class="lbl">Banco / Destino</span><span class="val">${m.banco}</span></div>
-            <div class="mic"><span class="lbl"><i class="fas fa-calendar-check"></i> F. Banco</span><span class="val">${fmtFec(m.fecpag)}</span></div>
+            <div class="mic"><span class="lbl"><i class="fas fa-calendar-check"></i> F. Banco</span><span class="val">${fmtFec(m.fbanco)}</span></div>
             <div class="mic"><span class="lbl">Estatus</span><span class="val">${estBadge(m.estatus)}</span></div>
         </div>
 
