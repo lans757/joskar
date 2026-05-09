@@ -81,7 +81,7 @@ try {
     $banco_mapper = $stmt_banc->fetchAll(PDO::FETCH_KEY_PAIR);
 
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
-    $date_col = ($f_tipo_fec === 'fbanco') ? 'DATE(aa.fbanco)' : 'DATE(aa.fechagestion)';
+    $date_col = ($f_tipo_fec === 'fbanco') ? 'DATE(aa.fbanco)' : 'COALESCE(DATE(aa.estampa), DATE(aa.fechagestion))';
     $where_add = "";
     if (!empty($f_banco)) { 
         $where_add .= " AND base.codbanc = :banco";  
