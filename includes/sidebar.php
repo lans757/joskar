@@ -43,6 +43,11 @@ if (!isset($activePage)) $activePage = "dashboard";
                 <i class="fas fa-chart-line"></i> Indicadores Gerencia
             </a>
         </li>
+        <li>
+            <a href="<?php echo $path_prefix; ?>vistas/vista_inventario_hardware.php" class="<?php echo ($activePage == 'inventario_hardware' ? 'active' : ''); ?>">
+                <i class="fas fa-laptop-code"></i> Inventario Hardware
+            </a>
+        </li>
         
         <!-- Add a logout option if it makes sense -->
         <li style="margin-top: auto;">
