@@ -357,17 +357,17 @@ $grafico_usr = prepararDatosGrafico(
 
     <!-- Navegación de Módulo -->
     <nav class="module-nav">
-        <a href="almacen_articulos_comprados.php" class="nav-item">
+        <a href="televentas_articulos.php" class="nav-item">
             <i class="fas fa-list"></i>
-            <span>Artículos Comprados</span>
+            <span>Artículos Vendidos</span>
         </a>
-        <a href="almacen_top_vendidos.php" class="nav-item">
+        <a href="televentas_top.php" class="nav-item">
             <i class="fas fa-trophy"></i>
             <span>Top Vendidos</span>
         </a>
-        <a href="vista_compras.php" class="nav-item">
-            <i class="fas fa-shopping-cart"></i>
-            <span>KPIs</span>
+        <a href="televentas_kpis.php" class="nav-item">
+            <i class="fas fa-chart-line"></i>
+            <span>Indicadores KPI</span>
         </a>
     </nav>
 
