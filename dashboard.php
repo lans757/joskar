@@ -47,11 +47,17 @@ try {
     $stmt_ger = $pdo->query("SELECT COUNT(*) FROM smov WHERE tipo_doc = 'FC' AND fecha >= DATE_SUB((SELECT MAX(fecha) FROM smov), INTERVAL 30 DAY)");
     $gerencia_ventas = (int)$stmt_ger->fetchColumn();
 
-    // 7. Compras - Mantenemos valor demo por ahora
-    $compras_pendientes = 3;
+    // 7. Compras - Órdenes de compra pendientes
+    $stmt_comp = $pdo->query("SELECT COUNT(*) FROM ordc WHERE status = 'PE'");
+    $compras_pendientes = (int)$stmt_comp->fetchColumn();
+
+    // 8. Inventario Hardware - Total de equipos
+    $stmt_inv = $pdo->query("SELECT COUNT(*) FROM invsis");
+    $inventario_equipos = (int)$stmt_inv->fetchColumn();
 
 } catch (PDOException $e) {
     // En caso de error, mantener valores por defecto o 0
+    $inventario_equipos = 0;
 }
 ?>
 
@@ -87,7 +93,11 @@ try {
                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Gestión de órdenes, proveedores y mercancia.</p>
                 </div>
                 <div class="dept-status">
-                    <div class="status-dot" style="background: var(--accent-yellow); box-shadow: 0 0 10px var(--accent-yellow);"></div> <?php echo $compras_pendientes; ?> Órdenes activas
+                    <?php if ($compras_pendientes > 0): ?>
+                        <div class="status-dot" style="background: var(--accent-yellow); box-shadow: 0 0 10px var(--accent-yellow);"></div> <?php echo $compras_pendientes; ?> Órdenes activas
+                    <?php else: ?>
+                        <div class="status-dot"></div> Sin órdenes activas
+                    <?php endif; ?>
                 </div>
             </a>
 
@@ -147,6 +157,18 @@ try {
                     <?php else: ?>
                         <div class="status-dot"></div> Sin ventas recientes
                     <?php endif; ?>
+                </div>
+            </a>
+
+            <!-- Inventario Hardware -->
+            <a href="vistas/vista_inventario_hardware.php" class="card dept-card">
+                <div>
+                    <div class="dept-icon" style="color: #00e676;"><i class="fas fa-laptop-code"></i></div>
+                    <h3>Inventario Hardware</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Control de activos y equipos asignados al personal.</p>
+                </div>
+                <div class="dept-status">
+                    <div class="status-dot" style="background: #00e676; box-shadow: 0 0 10px #00e676;"></div> <?php echo $inventario_equipos; ?> Equipos registrados
                 </div>
             </a>
         </div>
