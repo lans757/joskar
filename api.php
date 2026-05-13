@@ -7,7 +7,10 @@ include('includes/db.php');
 
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);
-error_reporting(0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/logs/php-error.log');
+error_reporting(E_ALL);
+if (!is_dir(__DIR__ . '/logs')) @mkdir(__DIR__ . '/logs', 0755, true);
 
 try {
     $conn = new mysqli($config['host'], $config['user'], $config['pass'], $config['db']);
@@ -65,74 +68,31 @@ function alertaCond($alerta, $dias_expr) {
 
 // ─── Métricas ─────────────────────────────────────────────────────────────────
 function getCounts($conn, $almacen, $dias_expr, $prov_cond, $marca_cond = "") {
-    $counts = ['critical' => 0, 'low' => 0, 'ok' => 0, 'totalH1' => 0, 'valorUSD' => 0];
+    $counts = ['critical' => 0, 'low' => 0, 'ok' => 0, 'out' => 0, 'totalH1' => 0, 'valorUSD' => 0];
 
-    // Total de productos con stock en el almacén
-    $res = $conn->query("
-        SELECT COUNT(*) as total
+    $sql = "
+        SELECT
+            SUM(CASE WHEN i.existen >= 1 THEN 1 ELSE 0 END) AS totalH1,
+            SUM(CASE WHEN i.existen >= 1 AND $dias_expr < 10 THEN 1 ELSE 0 END) AS critical,
+            SUM(CASE WHEN i.existen > 0 AND $dias_expr BETWEEN 10 AND 30 THEN 1 ELSE 0 END) AS low,
+            SUM(CASE WHEN i.existen > 0 AND $dias_expr > 30 THEN 1 ELSE 0 END) AS ok_count,
+            SUM(CASE WHEN i.existen <= 0 THEN 1 ELSE 0 END) AS outc,
+            SUM(CASE WHEN i.existen > 0 THEN i.existen * b.pondd ELSE 0 END) AS valorUSD
         FROM sinv b
         JOIN itsinv i ON b.codigo = i.codigo
         WHERE i.alma = '$almacen'
-          AND i.existen >= 1
           $prov_cond $marca_cond
-    ");
-    if ($res) $counts['totalH1'] = (int)$res->fetch_assoc()['total'];
+    ";
 
-    // CRÍTICO: con stock pero menos de 10 días
-    $res = $conn->query("
-        SELECT COUNT(*) as total
-        FROM sinv b
-        JOIN itsinv i ON b.codigo = i.codigo
-        WHERE i.alma = '$almacen'
-          AND i.existen >= 1
-          AND $dias_expr < 10
-          $prov_cond $marca_cond
-    ");
-    if ($res) $counts['critical'] = (int)$res->fetch_assoc()['total'];
-
-    // BAJO MÍNIMO (ATENCIÓN): entre 10 y 30 días
-    $res = $conn->query("
-        SELECT COUNT(*) as total
-        FROM sinv b
-        JOIN itsinv i ON b.codigo = i.codigo
-        WHERE i.alma = '$almacen'
-          AND i.existen > 0
-          AND $dias_expr BETWEEN 10 AND 30
-          $prov_cond $marca_cond
-    ");
-    if ($res) $counts['low'] = (int)$res->fetch_assoc()['total'];
-
-    // ÓPTIMO: más de 30 días de stock
-    $res = $conn->query("
-        SELECT COUNT(*) as total
-        FROM sinv b
-        JOIN itsinv i ON b.codigo = i.codigo
-        WHERE i.alma = '$almacen'
-          AND i.existen > 0
-          AND $dias_expr > 30
-          $prov_cond $marca_cond
-    ");
-    if ($res) $counts['ok'] = (int)$res->fetch_assoc()['total'];
-
-    // SIN STOCK (AGOTADOS): existencia <= 0
-    $res = $conn->query("
-        SELECT COUNT(*) as total
-        FROM sinv b
-        JOIN itsinv i ON b.codigo = i.codigo
-        WHERE i.alma = '$almacen'
-          AND i.existen <= 0
-          $prov_cond $marca_cond
-    ");
-    if ($res) $counts['out'] = (int)$res->fetch_assoc()['total'];
-
-    // VALOR USD total del almacén
-    $res = $conn->query("
-        SELECT SUM(i.existen * b.pondd) as total
-        FROM sinv b
-        JOIN itsinv i ON b.codigo = i.codigo
-        WHERE i.alma = '$almacen' AND i.existen > 0 $prov_cond $marca_cond
-    ");
-    if ($res) $counts['valorUSD'] = (float)$res->fetch_assoc()['total'];
+    $res = $conn->query($sql);
+    if ($res && ($row = $res->fetch_assoc())) {
+        $counts['totalH1']  = (int)$row['totalH1'];
+        $counts['critical'] = (int)$row['critical'];
+        $counts['low']      = (int)$row['low'];
+        $counts['ok']       = (int)$row['ok_count'];
+        $counts['out']      = (int)$row['outc'];
+        $counts['valorUSD'] = (float)$row['valorUSD'];
+    }
 
     return $counts;
 }
