@@ -1,0 +1,18 @@
+# Páginas de error personalizadas
+ErrorDocument 400 /noti_pro/errors/400.php
+ErrorDocument 403 /noti_pro/errors/400.php
+ErrorDocument 404 /noti_pro/errors/404.php
+ErrorDocument 500 /noti_pro/errors/500.php
+
+# Evita listado de directorios
+Options -Indexes
+
+# Bloquea acceso directo a archivos sensibles
+<FilesMatch "\.(env|md|sql|log)$">
+    Require all denied
+</FilesMatch>
+
+# Bloquea acceso al layout privado de errores
+<Files "_error_layout.php">
+    Require all denied
+</Files>

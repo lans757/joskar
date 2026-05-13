@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../includes/auth.php';
+require_login();
 /**
  * ============================================================
  * INVENTARIO HARDWARE - NOTIPRO
@@ -38,12 +40,6 @@ try {
 }
 ?>
 
-<style>
-    #table-inventario th,
-    #table-inventario td {
-        white-space: nowrap;
-    }
-</style>
 
 <main class="main-content">
 <div class="content-wrapper">

@@ -1,2 +1,17 @@
-# Ignorar la carpeta completa de configuración (donde están database.php, etc.)
+# Configuración sensible
 includes/db.php
+.env
+
+# Modelos antiguos / borradores reutilizables (no se suben al repo)
+_archivo_modelos/
+
+# Logs
+logs/
+*.log
+
+# Sistema operativo / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

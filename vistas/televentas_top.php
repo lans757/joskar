@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../includes/auth.php';
+require_login();
 /**
  * TOP PRODUCTOS MÁS VENDIDOS - TELEVENTAS
  * Reporte de rotación basado en pedidos de televentas por usuario

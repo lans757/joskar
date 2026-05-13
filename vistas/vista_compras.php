@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../includes/auth.php';
+require_login();
 $pageTitle = "ProteoERP | Compras";
 $activePage = "compras";
 $path_prefix = "../";

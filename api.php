@@ -1,9 +1,12 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/auth.php';
 header('Content-Type: application/json');
 
-
 include('includes/db.php');
+
+if (($_GET['action'] ?? 'alertas') !== 'me') {
+    require_login_json();
+}
 
 ini_set('display_errors', 0);
 ini_set('display_startup_errors', 0);

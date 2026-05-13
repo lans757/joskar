@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../includes/auth.php';
+require_login();
 /**
  * ============================================================
  * INDICADORES CLAVE (KPI) - ALMACÉN PROTEOERP

@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../includes/auth.php';
+require_login();
 $pageTitle  = "ProteoERP Dashboard | Almacén";
 $activePage = "almacen";
 $path_prefix = "../";
@@ -248,6 +250,6 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
 </main>
 
 <?php
-$extraScripts = "<script src='../dashboard.js'></script>";
+$extraScripts = "<script src='../assets/js/dashboard.js'></script>";
 include('../includes/footer.php');
 ?>
