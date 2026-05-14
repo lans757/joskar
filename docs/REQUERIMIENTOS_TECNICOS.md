@@ -202,7 +202,52 @@ La tabla `usuario` de ProteoERP es la fuente única:
 
 ---
 
-## 6. Cambios recientes (changelog técnico)
+## 6. Sistema de temas (claro / oscuro)
+
+La app soporta tema **oscuro** (por defecto) y **claro**, con persistencia por usuario en `localStorage`.
+
+### 6.1 Arquitectura
+
+- **Variables CSS** definidas en [assets/css/style.css](../assets/css/style.css) bajo dos selectores:
+  - `:root, [data-theme="dark"]` — paleta oscura.
+  - `[data-theme="light"]` — paleta clara.
+- El atributo `data-theme` se aplica al `<html>` y se cambia en runtime.
+- Todos los componentes del UI consumen las mismas variables (`--bg-main`, `--bg-card`, `--text-main`, `--primary`, etc.), por lo que un cambio de tema basta con cambiar el atributo.
+
+### 6.2 Persistencia y carga sin flash
+
+- La clave guardada en `localStorage` es **`proteo-theme`** con valor `'dark'` o `'light'`.
+- Un script **inline en el `<head>`** (en [includes/header.php](../includes/header.php), [errors/_error_layout.php](../errors/_error_layout.php) y [errors/acceso_denegado.php](../errors/acceso_denegado.php)) aplica el atributo `data-theme` **antes del primer paint**, evitando el flash de tema incorrecto al cargar.
+
+### 6.3 API JavaScript — [assets/js/theme.js](../assets/js/theme.js)
+
+```js
+ProteoTheme.get()         // 'dark' | 'light'
+ProteoTheme.set('light')  // fuerza un tema
+ProteoTheme.toggle()      // alterna entre los dos
+```
+
+Cualquier elemento HTML con el atributo `data-theme-toggle` alterna el tema al hacer click (delegación global).
+
+Evento custom emitido al cambiar: `document.addEventListener('themechange', e => { /* e.detail.theme */ })`.
+
+### 6.4 Dónde está el botón de cambio
+
+| Ubicación | Componente |
+|---|---|
+| Sidebar (encima de "Cerrar Sesión") | Botón completo con ícono sol/luna y etiqueta dinámica. |
+| `errors/acceso_denegado.php` | Mini-toggle en la esquina superior derecha del contenedor. |
+| `errors/400.php` / `404.php` / `500.php` | Heredan el tema guardado, sin botón propio (el usuario suele venir desde una página con sesión donde ya pudo elegir). |
+
+### 6.5 Cómo agregar tema a componentes nuevos
+
+1. **No uses colores hardcoded** (`#fff`, `#000`, `#3498db`). Usa las variables: `var(--text-main)`, `var(--bg-card)`, `var(--primary)`, etc.
+2. Si el componente está fuera del layout estándar (página suelta), incluye el bootstrap script de tema en su `<head>` y carga `assets/css/style.css` + `assets/js/theme.js`.
+3. Para colores específicos de un solo tema, usa selectores con `[data-theme="light"] .mi-clase { ... }`.
+
+---
+
+## 7. Cambios recientes (changelog técnico)
 
 | Fecha | Cambio |
 |---|---|
@@ -212,10 +257,16 @@ La tabla `usuario` de ProteoERP es la fuente única:
 | 2026-05-13 | `includes/auth.php` con `require_login` / `require_supervisor`. |
 | 2026-05-13 | Protección de sesión en `dashboard.php`, `export_excel.php`, 14 vistas y `api.php`. |
 | 2026-05-13 | Páginas de error 400/404/500 en `errors/` + `.htaccess` ErrorDocument. |
+| 2026-05-13 | Reestructuración: eliminación de `noti_pro/noti_pro/` duplicado, nueva carpeta `assets/{css,js,img}`. |
+| 2026-05-13 | Consolidación de CSS (todos los `<style>` inline a `style.css`). |
+| 2026-05-13 | Bootstrap centralizado de errores PHP en `includes/bootstrap.php` (lectura de `APP_DEBUG`, exception handler, shutdown handler). |
+| 2026-05-13 | Reporter universal de errores en consola del navegador: [assets/js/error-reporter.js](../assets/js/error-reporter.js). |
+| 2026-05-13 | Página `errors/acceso_denegado.php` con ilustración personalizada del perrito bóxer. |
+| 2026-05-13 | **Sistema de temas claro/oscuro** con persistencia, anti-flash y toggle en sidebar + páginas de error. |
 
 ---
 
-## 7. Contacto
+## 8. Contacto
 
 - Repositorio: `noti_pro` (rama `main`).
 - Mantenedor actual: `leonardocaripadev`.

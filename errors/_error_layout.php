@@ -25,8 +25,19 @@ http_response_code($errorCode);
     <title>ProteoERP | Error <?php echo (int)$errorCode; ?></title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Outfit:wght@700;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('proteo-theme') || 'dark';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
     <link rel="stylesheet" href="../assets/css/style.css">
     <script src="../assets/js/error-reporter.js"></script>
+    <script src="../assets/js/theme.js"></script>
     <script>
         window.ProteoLog && window.ProteoLog.error(
             'Página de error <?php echo (int)$errorCode; ?>:',
