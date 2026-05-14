@@ -8,13 +8,6 @@ if (($_GET['action'] ?? 'alertas') !== 'me') {
     require_login_json();
 }
 
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
-ini_set('log_errors', 1);
-ini_set('error_log', __DIR__ . '/logs/php-error.log');
-error_reporting(E_ALL);
-if (!is_dir(__DIR__ . '/logs')) @mkdir(__DIR__ . '/logs', 0755, true);
-
 try {
     $conn = new mysqli($config['host'], $config['user'], $config['pass'], $config['db']);
     if ($conn->connect_error) {
@@ -22,7 +15,9 @@ try {
     }
     $conn->set_charset("utf8");
 } catch (Exception $e) {
-    die(json_encode(["error" => $e->getMessage()]));
+    error_log('[api.php][mysqli] ' . $e->getMessage());
+    $debug = strtolower($GLOBALS['_NOTIPRO_ENV']['APP_DEBUG'] ?? 'false') === 'true';
+    die(json_encode(["error" => $debug ? $e->getMessage() : 'Error de conexión con la base de datos']));
 }
 
 $action  = $_GET['action']     ?? 'alertas';
@@ -249,7 +244,9 @@ try {
     }
 
 } catch (Exception $e) {
-    echo json_encode(['error' => $e->getMessage()]);
+    error_log('[api.php] ' . $e->getMessage());
+    $debug = strtolower($GLOBALS['_NOTIPRO_ENV']['APP_DEBUG'] ?? 'false') === 'true';
+    echo json_encode(['error' => $debug ? $e->getMessage() : 'Error interno del servidor']);
 }
 
 $conn->close();

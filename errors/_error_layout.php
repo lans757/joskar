@@ -26,6 +26,14 @@ http_response_code($errorCode);
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Outfit:wght@700;800&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/style.css">
+    <script src="../assets/js/error-reporter.js"></script>
+    <script>
+        window.ProteoLog && window.ProteoLog.error(
+            'Página de error <?php echo (int)$errorCode; ?>:',
+            <?php echo json_encode($errorTitle); ?>,
+            <?php echo json_encode($errorMsg); ?>
+        );
+    </script>
 </head>
 <body class="err-body" style="--err-color: <?php echo htmlspecialchars($errorColor); ?>;">
     <div class="err-wrap">
