@@ -49,18 +49,14 @@ if (!isset($activePage)) $activePage = "dashboard";
             </a>
         </li>
         
-        <li style="margin-top: auto; padding: 8px 12px;">
-            <button type="button" class="theme-toggle" data-theme-toggle aria-label="Cambiar tema">
-                <i class="fas fa-sun icon-sun"></i>
-                <i class="fas fa-moon icon-moon"></i>
-                <span class="label-light">Modo claro</span>
-                <span class="label-dark">Modo oscuro</span>
-            </button>
-        </li>
-        <li>
+        <li class="sidebar-footer" style="margin-top: auto;">
             <a href="<?php echo $path_prefix; ?>logout.php" style="color: var(--accent-red);">
                 <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
             </a>
+            <button type="button" class="theme-toggle" data-theme-toggle aria-label="Cambiar tema" title="Cambiar tema">
+                <i class="fas fa-sun icon-sun"></i>
+                <i class="fas fa-moon icon-moon"></i>
+            </button>
         </li>
     </ul>
 </aside>
