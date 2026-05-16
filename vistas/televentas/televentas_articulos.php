@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 /**
  * LISTADO DE ARTÍCULOS VENDIDOS - TELEVENTAS
@@ -7,7 +7,7 @@ require_login();
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 // --- Manejo AJAX: Gráfico Vendedor ---
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'vendedores') {
@@ -121,10 +121,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'filtrar') {
 // --- Parámetros iniciales ---
 $pageTitle   = "ProteoERP | Artículos Vendidos (Televentas)";
 $activePage  = "televentas";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // --- Filtros ---
 $f_ini = $_GET['f_ini'] ?? date('Y-01-01');
@@ -809,4 +809,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>

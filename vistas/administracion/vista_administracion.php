@@ -1,12 +1,12 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 $pageTitle = "ProteoERP | Administración";
 $activePage = "administracion";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 ?>
 <main class="main-content">
     <div class="content-wrapper">
@@ -23,5 +23,5 @@ include('../includes/sidebar.php');
     </div>
 </main>
 <?php
-include('../includes/footer.php');
+include('../../includes/footer.php');
 ?>

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 /**
  * ============================================================
@@ -8,7 +8,7 @@ require_login();
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 // --- Manejo AJAX: Gráfico Proveedor ---
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
@@ -55,10 +55,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
 $pageTitle   = "ProteoERP | Compras por Fecha";
 $activePage  = "almacen";
 $activeSubPage = "compras_fecha";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // --- Filtros ---
 $f_ini  = $_GET['f_ini'] ?? date('Y-01-01');
@@ -449,4 +449,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>

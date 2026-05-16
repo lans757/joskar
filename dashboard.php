@@ -72,7 +72,7 @@ try {
 
         <div class="warehouse-grid">
             <!-- Televentas -->
-            <a href="vistas/vista_televentas.php" class="card dept-card">
+            <a href="vistas/televentas/vista_televentas.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-green);"><i class="fas fa-headset"></i></div>
                     <h3>Televentas</h3>
@@ -88,7 +88,7 @@ try {
             </a>
 
             <!-- Compras -->
-            <a href="vistas/vista_compras.php" class="card dept-card">
+            <a href="vistas/compras/vista_compras.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-yellow);"><i class="fas fa-shopping-basket"></i></div>
                     <h3>Compras</h3>
@@ -104,7 +104,7 @@ try {
             </a>
 
             <!-- Administración -->
-            <a href="vistas/vista_administracion.php" class="card dept-card">
+            <a href="vistas/administracion/vista_administracion.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--primary);"><i class="fas fa-landmark"></i></div>
                     <h3>Administración</h3>
@@ -116,7 +116,7 @@ try {
             </a>
 
             <!-- Cobranzas -->
-            <a href="vistas/vista_cobranzas.php" class="card dept-card">
+            <a href="vistas/cobranzas/vista_cobranzas.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-red);"><i class="fas fa-coins"></i></div>
                     <h3>Cobranzas</h3>
@@ -132,7 +132,7 @@ try {
             </a>
 
             <!-- Almacén -->
-            <a href="vistas/vista_almacen.php" class="card dept-card">
+            <a href="vistas/almacen/vista_almacen.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-orange);"><i class="fas fa-warehouse"></i></div>
                     <h3>Almacén</h3>
@@ -147,7 +147,7 @@ try {
             </a>
 
             <!-- Gerencia -->
-            <a href="vistas/vista_gerencia.php" class="card dept-card">
+            <a href="vistas/gerencia/vista_gerencia.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: #a855f7;"><i class="fas fa-chart-pie"></i></div>
                     <h3>Gerencia</h3>
@@ -163,7 +163,7 @@ try {
             </a>
 
             <!-- Inventario Hardware -->
-            <a href="vistas/vista_inventario_hardware.php" class="card dept-card">
+            <a href="vistas/inventario_hardware/vista_inventario_hardware.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: #00e676;"><i class="fas fa-laptop-code"></i></div>
                     <h3>Inventario Hardware</h3>

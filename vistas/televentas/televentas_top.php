@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 /**
  * TOP PRODUCTOS MÁS VENDIDOS - TELEVENTAS
@@ -7,7 +7,7 @@ require_login();
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'chart') {
     $f_ini = $_GET['f_ini'] ?? date('Y-01-01');
@@ -83,10 +83,10 @@ $productos = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
 
 $pageTitle = "Top Artículos Vendidos | Televentas";
 $activePage = "televentas";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 ?>
 
 <main class="main-content">
@@ -310,4 +310,4 @@ function exportXls(tableId, filename) {
 document.addEventListener('DOMContentLoaded', loadChart);
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>

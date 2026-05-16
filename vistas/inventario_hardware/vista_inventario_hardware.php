@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 /**
  * ============================================================
@@ -8,14 +8,14 @@ require_login();
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 $pageTitle   = "ProteoERP | Inventario Hardware";
 $activePage  = "inventario_hardware";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // --- Paginación ---
 $limit  = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
@@ -159,6 +159,6 @@ function exportXls(id, name) {
 }
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>
 </body>
 </html>

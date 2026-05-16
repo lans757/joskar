@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 /**
  * ============================================================
@@ -8,7 +8,7 @@ require_login();
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 // --- FILTROS ---
 $f_ini   = $_GET['f_ini'] ?? date('Y-01-01');
@@ -137,10 +137,10 @@ $cuadro_mando = $stmt_mando->fetchAll(PDO::FETCH_ASSOC);
 
 $pageTitle = "Indicadores KPI | Almacén";
 $activePage = "almacen";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 ?>
 
 <main class="main-content">
@@ -460,4 +460,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 /**
  * ============================================================
@@ -8,7 +8,7 @@ require_login();
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 // --- Manejo AJAX: Datos del Gráfico ---
 if (isset($_GET['ajax']) && $_GET['ajax'] === 'chart') {
@@ -87,10 +87,10 @@ $productos = $stmt_list->fetchAll(PDO::FETCH_ASSOC);
 
 $pageTitle = "Top Artículos Vendidos | Almacén";
 $activePage = "almacen";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 ?>
 
 <main class="main-content">
@@ -317,4 +317,4 @@ function exportXls(tableId, filename) {
 document.addEventListener('DOMContentLoaded', loadChart);
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>

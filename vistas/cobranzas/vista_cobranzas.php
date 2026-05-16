@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 /**
  * ============================================================
@@ -8,7 +8,7 @@ require_login();
  * ============================================================
  */
 
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 
 // --- Manejo AJAX: Detalle de Movimiento ---
 // DEBE IR AL PRINCIPIO PARA EVITAR SALIDA HTML EN LA RESPUESTA JSON
@@ -59,10 +59,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle') {
 
 $pageTitle   = "ProteoERP | Cuadre de Caja";
 $activePage  = "cobranzas";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // --- Filtros de búsqueda ---
 $f_ini = $_GET['f_ini'] ?? date('Y-m-01');
@@ -555,6 +555,6 @@ modal.addEventListener('click', (e) => {
 });
 </script>
 
-<?php include('../includes/footer.php'); ?>
+<?php include('../../includes/footer.php'); ?>
 </body>
 </html>

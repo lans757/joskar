@@ -1,15 +1,15 @@
 <?php
-require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../../includes/auth.php';
 require_login();
 $pageTitle  = "ProteoERP Dashboard | Almacén";
 $activePage = "almacen";
-$path_prefix = "../";
+$path_prefix = "../../";
 
-include('../includes/header.php');
-include('../includes/sidebar.php');
+include('../../includes/header.php');
+include('../../includes/sidebar.php');
 
 // Fetch providers for filter
-require_once('../includes/db.php');
+require_once('../../includes/db.php');
 $stmt_prov = $pdo->query("SELECT proveed, nombre FROM sprv ORDER BY nombre ASC");
 $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -251,5 +251,5 @@ $proveedores = $stmt_prov->fetchAll(PDO::FETCH_ASSOC);
 
 <?php
 $extraScripts = "<script src='../assets/js/dashboard.js'></script>";
-include('../includes/footer.php');
+include('../../includes/footer.php');
 ?>
