@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const marca = urlParams.get('marca') || '';
         
         const isVista = window.location.pathname.includes('vistas/');
-        const apiPath = isVista ? '../api.php' : 'api.php';
+        const apiPath = isVista ? '../../api.php' : 'api.php';
         let url = `${apiPath}?action=${action}&limit=${itemsPerPage}&offset=${offset}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&codprov=${codprov}&marca=${encodeURIComponent(marca)}&sort_field=${sortField}&sort_dir=${sortDir}`;
         
         try {
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const codprov = document.getElementById('filter-prov') ? document.getElementById('filter-prov').value : '';
         
         const isVista = window.location.pathname.includes('vistas/');
-        const exportPath = isVista ? '../export_excel.php' : 'export_excel.php';
+        const exportPath = isVista ? '../../export_excel.php' : 'export_excel.php';
         
         let url = `${exportPath}?action=${currentTab}&search=${encodeURIComponent(search)}&alerta=${alerta}&almacen=${almacen}&codprov=${codprov}`;
         window.location.href = url;

@@ -79,7 +79,7 @@ $offset = ($page - 1) * $limit;
 // --- Query Principal: Auditoría ---
 try {
     // Banco Mapper para filtros
-    $stmt_banc = $pdo->query("SELECT codbanc, banco FROM banc WHERE activo = 'S' ORDER BY banco");
+    $stmt_banc = $pdo->query("SELECT codbanc, banco FROM banc WHERE activo = 'S' AND codbanc NOT IN ('MP', 'MD') ORDER BY banco");
     $banco_mapper = $stmt_banc->fetchAll(PDO::FETCH_KEY_PAIR);
 
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
@@ -119,7 +119,7 @@ try {
                         FROM smov WHERE tipo_doc IN ('AB','AN') GROUP BY cod_cli, gestion 
                     ) s ON s.cod_cli = b.cliente AND s.gestion = a.id 
                     LEFT JOIN banc c ON a.codbanc = c.codbanc 
-                    WHERE a.multip = 'N'
+                    WHERE a.multip = 'N' AND a.codbanc NOT IN ('MP', 'MD')
                 ) aa 
                 WHERE $date_col >= :ini AND $date_col <= :fin AND aa.estado = 'C'
             ) aa 
@@ -138,7 +138,7 @@ try {
     $total_usd = $kpis['total_usd'] ?? 0;
 
     // Resumen Consolidado (Small Table)
-    $stmt_res = $pdo->prepare("SELECT banco as banco_pago, tipo_doc as tipo_pago, COUNT(*) as ops, SUM(monto) as total_bs, SUM(montod) as total_usd FROM ($sql_agestion) AS result GROUP BY banco, tipo_doc ORDER BY total_usd DESC");
+    $stmt_res = $pdo->prepare("SELECT banco as banco_pago, COUNT(*) as ops, SUM(monto) as total_bs, SUM(montod) as total_usd FROM ($sql_agestion) AS result GROUP BY banco ORDER BY total_usd DESC");
     $stmt_res->execute($params);
     $consolidado = $stmt_res->fetchAll(PDO::FETCH_ASSOC);
 
@@ -160,7 +160,6 @@ function renderBancoBadge($n) {
     $style = "background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid var(--border);";
     if (str_contains($l,'banesco')) $style = "background:rgba(0,180,255,0.1); color:var(--primary); border:1px solid rgba(0,180,255,0.2);";
     elseif (str_contains($l,'provincial')) $style = "background:rgba(37,99,235,0.1); color:#60a5fa; border:1px solid rgba(37,99,235,0.2);";
-    elseif (str_contains($l,'multipago')||str_contains($l,'caja')) $style = "background:rgba(255,193,7,0.1); color:var(--accent-yellow); border:1px solid rgba(255,193,7,0.2);";
     return "<span class='pill-banco' style='$style'>".htmlspecialchars($n)."</span>";
 }
 function renderEstatus($e) {
@@ -266,7 +265,6 @@ function renderEstatus($e) {
                 <thead>
                     <tr>
                         <th>BANCO / MÉTODO</th>
-                        <th>FORMA</th>
                         <th class="c">OPERACIONES</th>
                         <th class="r">TOTAL (BS)</th>
                         <th class="r">TOTAL (EST. USD)</th>
@@ -276,7 +274,6 @@ function renderEstatus($e) {
                 <?php foreach($consolidado as $c): ?>
                     <tr>
                         <td><?php echo renderBancoBadge($c['banco_pago']); ?></td>
-                        <td><span class="code-badge"><?php echo htmlspecialchars($c['tipo_pago']);?></span></td>
                         <td class="c"><strong><?php echo $c['ops'];?></strong></td>
                         <td class="r" style="color:var(--text-main); font-weight:700;">Bs. <?php echo number_format($c['total_bs'],2,',','.');?></td>
                         <td class="r" style="color:var(--accent-green); font-weight:700;">$ <?php echo number_format($c['total_usd'],2,'.',',');?></td>
@@ -334,9 +331,6 @@ function renderEstatus($e) {
                             </td>
                             <td>
                                 <?php echo renderBancoBadge($r['banco']); ?>
-                                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">
-                                    TIPO: <strong><?php echo htmlspecialchars($r['tipo_doc']);?></strong>
-                                </div>
                             </td>
                             <td class="r" style="font-weight:700;">Bs. <?php echo number_format($r['monto'], 2, ',', '.'); ?></td>
                             <td class="r" style="font-weight:700; color:var(--accent-green);">$ <?php echo number_format($r['montod'], 2, '.', ','); ?></td>
@@ -488,7 +482,6 @@ function renderModalDetail(data) {
         <div class="modal-info-grid">
             <div class="mic"><span class="lbl">Monto Gestionado</span><span class="val gr">${fmtCur(m.monto_bs)}</span></div>
             <div class="mic"><span class="lbl">Equivalente USD</span><span class="val bl">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(m.monto_usd)}</span></div>
-            <div class="mic"><span class="lbl">Forma de Pago</span><span class="val">${m.tipo_pago}</span></div>
             <div class="mic"><span class="lbl">Banco / Destino</span><span class="val">${m.banco}</span></div>
             <div class="mic"><span class="lbl"><i class="fas fa-calendar-check"></i> F. Banco</span><span class="val">${fmtFec(m.fbanco)}</span></div>
             <div class="mic"><span class="lbl">Estatus</span><span class="val">${estBadge(m.estatus)}</span></div>

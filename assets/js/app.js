@@ -11,14 +11,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Auth Check
     const checkAuth = async () => {
         const isVista = window.location.pathname.includes('vistas/');
-        const apiPath = isVista ? '../api.php' : 'api.php';
+        const apiPath = isVista ? '../../api.php' : 'api.php';
         
         try {
             const resp = await fetch(`${apiPath}?action=me`);
             const user = await resp.json();
             
             if (!user.logged_in && !isLoginPage) {
-                window.location.href = (window.location.pathname.includes('vistas/')) ? '../index.php' : 'index.php';
+                window.location.href = (window.location.pathname.includes('vistas/')) ? '../../index.php' : 'index.php';
                 return null;
             }
             return user;
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const navbar = document.createElement('nav');
         navbar.className = 'top-navbar';
         
-        const logoutUrl = (window.location.pathname.includes('vistas/')) ? '../logout.php' : 'logout.php';
+        const logoutUrl = (window.location.pathname.includes('vistas/')) ? '../../logout.php' : 'logout.php';
         const initials = user.user_name.split(' ').map(n => n[0]).join('').substring(0, 2);
 
         navbar.innerHTML = `
