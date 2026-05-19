@@ -24,7 +24,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle') {
                     COALESCE(NULLIF(c.banco,''), 'EFECTIVO') as banco, a.tipo_doc as tipo_pago, a.descrip
              FROM gecli a 
              JOIN scli b ON a.cliente = b.id 
-             LEFT JOIN banc c ON a.codbanc = c.codbanc
+             LEFT JOIN banc c ON c.codbanc = COALESCE((SELECT p.codbanc FROM gecli p WHERE p.numero = SUBSTRING_INDEX(a.numero, '-', 1) AND p.multip = 'S' LIMIT 1), a.codbanc)
              WHERE a.id = :gestion
              LIMIT 1"
         );
@@ -79,7 +79,7 @@ $offset = ($page - 1) * $limit;
 // --- Query Principal: Auditoría ---
 try {
     // Banco Mapper para filtros
-    $stmt_banc = $pdo->query("SELECT codbanc, banco FROM banc WHERE activo = 'S' AND codbanc NOT IN ('MP', 'MD') ORDER BY banco");
+    $stmt_banc = $pdo->query("SELECT codbanc, banco FROM banc WHERE activo = 'S' ORDER BY banco");
     $banco_mapper = $stmt_banc->fetchAll(PDO::FETCH_KEY_PAIR);
 
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
@@ -109,7 +109,9 @@ try {
                     SELECT a.id AS gestion, b.cliente AS cod_cli, b.nombre AS cliente, a.status AS estado, a.tipo_doc, a.monto, a.descrip, 
                     (SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= a.fbanco ORDER BY fecha DESC LIMIT 1) tasa, 
                     if(a.mdolar <> 0, a.mdolar, ROUND(a.monto / (SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= a.fbanco ORDER BY fecha DESC LIMIT 1), 2)) montod, 
-                    c.banco, a.codbanc, t.nombre nombrep, a.fbanco, a.fecha AS fechagestion, s.estampa, s.numeros_smov, s.vendedor_smov, b.vendedor AS vend_scli, 
+                    c.banco, 
+                    COALESCE((SELECT p.codbanc FROM gecli p WHERE p.numero = SUBSTRING_INDEX(a.numero, '-', 1) AND p.multip = 'S' LIMIT 1), a.codbanc) AS codbanc, 
+                    t.nombre nombrep, a.fbanco, a.fecha AS fechagestion, s.estampa, s.numeros_smov, s.vendedor_smov, b.vendedor AS vend_scli, 
                     IFNULL( ( SELECT GROUP_CONCAT(act.vendedor ORDER BY act.vendedor SEPARATOR ',') FROM ( SELECT DISTINCT TRIM(vendedor) AS vendedor FROM scli WHERE tipo > 0 AND vendedor IS NOT NULL AND TRIM(vendedor) <> '' ) AS act WHERE FIND_IN_SET(act.vendedor, s.vendedor_smov) ), b.vendedor ) AS responsable 
                     FROM gecli a 
                     JOIN scli b ON a.cliente = b.id 
@@ -118,8 +120,8 @@ try {
                         SELECT tipo_doc, cod_cli, gestion, estampa, GROUP_CONCAT(DISTINCT numero ORDER BY numero SEPARATOR ',') AS numeros_smov, GROUP_CONCAT(DISTINCT vendedor ORDER BY vendedor SEPARATOR ',') AS vendedor_smov 
                         FROM smov WHERE tipo_doc IN ('AB','AN') GROUP BY cod_cli, gestion 
                     ) s ON s.cod_cli = b.cliente AND s.gestion = a.id 
-                    LEFT JOIN banc c ON a.codbanc = c.codbanc 
-                    WHERE a.multip = 'N' AND a.codbanc NOT IN ('MP', 'MD')
+                    LEFT JOIN banc c ON c.codbanc = COALESCE((SELECT p.codbanc FROM gecli p WHERE p.numero = SUBSTRING_INDEX(a.numero, '-', 1) AND p.multip = 'S' LIMIT 1), a.codbanc) 
+                    WHERE a.multip = 'N'
                 ) aa 
                 WHERE $date_col >= :ini AND $date_col <= :fin AND aa.estado = 'C'
             ) aa 
@@ -160,6 +162,7 @@ function renderBancoBadge($n) {
     $style = "background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid var(--border);";
     if (str_contains($l,'banesco')) $style = "background:rgba(0,180,255,0.1); color:var(--primary); border:1px solid rgba(0,180,255,0.2);";
     elseif (str_contains($l,'provincial')) $style = "background:rgba(37,99,235,0.1); color:#60a5fa; border:1px solid rgba(37,99,235,0.2);";
+    elseif (str_contains($l,'multipago')||str_contains($l,'caja')) $style = "background:rgba(255,193,7,0.1); color:var(--accent-yellow); border:1px solid rgba(255,193,7,0.2);";
     return "<span class='pill-banco' style='$style'>".htmlspecialchars($n)."</span>";
 }
 function renderEstatus($e) {
