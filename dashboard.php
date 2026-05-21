@@ -72,6 +72,7 @@ try {
 
         <div class="warehouse-grid">
             <!-- Televentas -->
+            <?php if (has_module_access('TELEVENTAS')): ?>
             <a href="vistas/televentas/vista_televentas.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-green);"><i class="fas fa-headset"></i></div>
@@ -86,8 +87,10 @@ try {
                     <?php endif; ?>
                 </div>
             </a>
+            <?php endif; ?>
 
             <!-- Compras -->
+            <?php if (has_module_access('COMPRAS')): ?>
             <a href="vistas/compras/vista_compras.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-yellow);"><i class="fas fa-shopping-basket"></i></div>
@@ -102,8 +105,10 @@ try {
                     <?php endif; ?>
                 </div>
             </a>
+            <?php endif; ?>
 
             <!-- Administración -->
+            <?php if (has_module_access('ADMINISTRACION')): ?>
             <a href="vistas/administracion/vista_administracion.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--primary);"><i class="fas fa-landmark"></i></div>
@@ -114,8 +119,10 @@ try {
                     <div class="status-dot" style="background: var(--primary); box-shadow: 0 0 10px var(--primary);"></div> <?php echo $admin_bancos; ?> Entidades operativas
                 </div>
             </a>
+            <?php endif; ?>
 
             <!-- Cobranzas -->
+            <?php if (has_module_access('COBRANZAS')): ?>
             <a href="vistas/cobranzas/vista_cobranzas.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-red);"><i class="fas fa-coins"></i></div>
@@ -130,8 +137,10 @@ try {
                     <?php endif; ?>
                 </div>
             </a>
+            <?php endif; ?>
 
             <!-- Almacén -->
+            <?php if (has_module_access('ALMACEN')): ?>
             <a href="vistas/almacen/vista_almacen.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: var(--accent-orange);"><i class="fas fa-warehouse"></i></div>
@@ -145,8 +154,10 @@ try {
                     <?php endif; ?>
                 </div>
             </a>
+            <?php endif; ?>
 
             <!-- Gerencia -->
+            <?php if (has_module_access('GERENCIA')): ?>
             <a href="vistas/gerencia/vista_gerencia.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: #a855f7;"><i class="fas fa-chart-pie"></i></div>
@@ -161,8 +172,10 @@ try {
                     <?php endif; ?>
                 </div>
             </a>
+            <?php endif; ?>
 
             <!-- Inventario Hardware -->
+            <?php if (has_module_access('INVENTARIO_HARDWARE')): ?>
             <a href="vistas/inventario_hardware/vista_inventario_hardware.php" class="card dept-card">
                 <div>
                     <div class="dept-icon" style="color: #00e676;"><i class="fas fa-laptop-code"></i></div>
@@ -173,6 +186,7 @@ try {
                     <div class="status-dot" style="background: #00e676; box-shadow: 0 0 10px #00e676;"></div> <?php echo $inventario_equipos; ?> Equipos registrados
                 </div>
             </a>
+            <?php endif; ?>
         </div>
     </div>
 </main>

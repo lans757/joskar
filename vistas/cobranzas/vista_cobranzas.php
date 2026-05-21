@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/../../includes/auth.php';
 require_login();
+if (!has_module_access('COBRANZAS')) {
+    header('Location: ../../acceso_denegado.php');
+    exit;
+}
 /**
  * ============================================================
  * GESTIÓN DE COBRANZAS - NOTIPRO
@@ -94,6 +98,13 @@ try {
         $params[':txt'] = "%$f_txt%"; 
     }
 
+    $loose_ini = date('Y-m-d', strtotime($f_ini . ' - 60 days'));
+    $loose_fin = date('Y-m-d', strtotime($f_fin . ' + 60 days'));
+    $gecli_date_filter = "AND a.fecha >= '$loose_ini' AND a.fecha <= '$loose_fin'";
+    if ($f_tipo_fec === 'fbanco') {
+        $gecli_date_filter = "AND a.fbanco >= :ini AND a.fbanco <= :fin";
+    }
+
     $sql_agestion = "
         SELECT 
             base.descrip, base.gestion, base.cod_cli, base.cliente, base.estado, base.tipo_doc, base.monto, base.tasa, base.montod,
@@ -103,29 +114,28 @@ try {
             SELECT aa.descrip,aa.gestion,aa.cod_cli,aa.cliente,aa.estado,aa.tipo_doc,aa.monto,aa.tasa,aa.montod,aa.banco,aa.codbanc,aa.fbanco,aa.nombrep,aa.fechagestion,aa.numeros_smov,aa.vendedor_smov,aa.vend_scli,aa.estampa,
             IF(aa.vendedor_smov='74,96','74',IF(aa.vendedor_smov='86,98','98',IF(aa.vendedor_smov='100,86','100',aa.responsable))) as responsable 
             FROM ( 
-                SELECT aa.descrip,aa.gestion,aa.cod_cli,aa.cliente,aa.estado,aa.tipo_doc,aa.monto,aa.tasa,aa.montod,aa.banco,aa.codbanc,aa.fbanco,aa.nombrep,aa.fechagestion,aa.numeros_smov,aa.vendedor_smov,aa.vend_scli,aa.estampa, 
-                IF( COALESCE( IF(FIND_IN_SET(aa.vend_scli, aa.vendedor_smov) > 0, aa.vend_scli, aa.vendedor_smov), aa.vend_scli ) = '01', aa.vend_scli, COALESCE( IF(FIND_IN_SET(aa.vend_scli, aa.vendedor_smov) > 0, aa.vend_scli, aa.vendedor_smov), aa.vend_scli ) ) AS responsable 
-                FROM (
-                    SELECT a.id AS gestion, b.cliente AS cod_cli, b.nombre AS cliente, a.status AS estado, a.tipo_doc, a.monto, a.descrip, 
-                    (SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= a.fbanco ORDER BY fecha DESC LIMIT 1) tasa, 
-                    if(a.mdolar <> 0, a.mdolar, ROUND(a.monto / (SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= a.fbanco ORDER BY fecha DESC LIMIT 1), 2)) montod, 
+                SELECT a.id AS gestion, b.cliente AS cod_cli, b.nombre AS cliente, a.status AS estado, a.tipo_doc, a.monto, a.descrip, 
+                    COALESCE(m.oficial, 1) as tasa, 
+                    if(a.mdolar <> 0, a.mdolar, ROUND(a.monto / COALESCE(m.oficial, 1), 2)) montod, 
                     c.banco, 
-                    COALESCE((SELECT p.codbanc FROM gecli p WHERE p.numero = SUBSTRING_INDEX(a.numero, '-', 1) AND p.multip = 'S' LIMIT 1), a.codbanc) AS codbanc, 
+                    COALESCE(p.codbanc, a.codbanc) AS codbanc, 
                     t.nombre nombrep, a.fbanco, a.fecha AS fechagestion, s.estampa, s.numeros_smov, s.vendedor_smov, b.vendedor AS vend_scli, 
-                    IFNULL( ( SELECT GROUP_CONCAT(act.vendedor ORDER BY act.vendedor SEPARATOR ',') FROM ( SELECT DISTINCT TRIM(vendedor) AS vendedor FROM scli WHERE tipo > 0 AND vendedor IS NOT NULL AND TRIM(vendedor) <> '' ) AS act WHERE FIND_IN_SET(act.vendedor, s.vendedor_smov) ), b.vendedor ) AS responsable 
-                    FROM gecli a 
-                    JOIN scli b ON a.cliente = b.id 
-                    LEFT JOIN tarjeta t ON a.fpago = t.tipo 
-                    LEFT JOIN ( 
-                        SELECT tipo_doc, cod_cli, gestion, estampa, GROUP_CONCAT(DISTINCT numero ORDER BY numero SEPARATOR ',') AS numeros_smov, GROUP_CONCAT(DISTINCT vendedor ORDER BY vendedor SEPARATOR ',') AS vendedor_smov 
-                        FROM smov WHERE tipo_doc IN ('AB','AN') GROUP BY cod_cli, gestion 
-                    ) s ON s.cod_cli = b.cliente AND s.gestion = a.id 
-                    LEFT JOIN banc c ON c.codbanc = COALESCE((SELECT p.codbanc FROM gecli p WHERE p.numero = SUBSTRING_INDEX(a.numero, '-', 1) AND p.multip = 'S' LIMIT 1), a.codbanc) 
-                    WHERE a.multip = 'N'
-                ) aa 
-                WHERE $date_col >= :ini AND $date_col <= :fin AND aa.estado = 'C'
+                    COALESCE(NULLIF(TRIM(s.vendedor_smov), ''), b.vendedor) AS responsable 
+                FROM gecli a 
+                JOIN scli b ON a.cliente = b.id 
+                LEFT JOIN tarjeta t ON a.fpago = t.tipo 
+                LEFT JOIN ( 
+                    SELECT tipo_doc, cod_cli, gestion, estampa, GROUP_CONCAT(DISTINCT numero ORDER BY numero SEPARATOR ',') AS numeros_smov, GROUP_CONCAT(DISTINCT vendedor ORDER BY vendedor SEPARATOR ',') AS vendedor_smov 
+                    FROM smov WHERE tipo_doc IN ('AB','AN') AND estampa >= '$loose_ini' AND estampa <= '$loose_fin' GROUP BY cod_cli, gestion 
+                ) s ON s.cod_cli = b.cliente AND s.gestion = a.id 
+                LEFT JOIN (
+                    SELECT numero, codbanc FROM gecli WHERE multip = 'S' AND fecha >= '$loose_ini'
+                ) p ON p.numero = SUBSTRING_INDEX(a.numero, '-', 1)
+                LEFT JOIN banc c ON c.codbanc = COALESCE(p.codbanc, a.codbanc) 
+                LEFT JOIN monecam m ON m.moneda = 'USD' AND m.fecha = a.fbanco
+                WHERE a.multip = 'N' $gecli_date_filter
             ) aa 
-            WHERE aa.responsable <> '01'
+            WHERE $date_col >= :ini AND $date_col <= :fin AND aa.estado = 'C' AND aa.responsable <> '01'
         ) base 
         LEFT JOIN vend bb ON base.responsable=bb.vendedor
         WHERE 1=1 $where_add

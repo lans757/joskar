@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/../../includes/auth.php';
 require_login();
+if (!has_module_access('GERENCIA')) {
+    header('Location: ../../acceso_denegado.php');
+    exit;
+}
 $pageTitle = "ProteoERP | Gerencia";
 $activePage = "gerencia";
 $path_prefix = "../../";

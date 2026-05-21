@@ -38,3 +38,31 @@ function require_supervisor() {
         exit;
     }
 }
+
+function has_module_access($area_key) {
+    if (empty($_SESSION['logged_in']) || empty($_SESSION['user_id'])) {
+        return false;
+    }
+    
+    $user_id = strtoupper(trim($_SESSION['user_id']));
+    $json_file = __DIR__ . '/accesos.json';
+    
+    if (!file_exists($json_file)) {
+        return false;
+    }
+    
+    $json_data = file_get_contents($json_file);
+    $accesos = json_decode($json_data, true);
+    
+    if (!is_array($accesos)) {
+        return false;
+    }
+    
+    if (isset($accesos[$area_key]) && is_array($accesos[$area_key])) {
+        // Hacemos la busqueda ignorando mayusculas/minusculas por seguridad
+        $area_users = array_map('strtoupper', $accesos[$area_key]);
+        return in_array($user_id, $area_users);
+    }
+    
+    return false;
+}

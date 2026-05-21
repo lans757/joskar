@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/../../includes/auth.php';
 require_login();
+if (!has_module_access('TELEVENTAS')) {
+    header('Location: ../../acceso_denegado.php');
+    exit;
+}
 /**
  * LISTADO DE ARTÍCULOS VENDIDOS - TELEVENTAS
  * Reporte consolidado con desglose por televendedor (usuario)

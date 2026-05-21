@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/../../includes/auth.php';
 require_login();
+if (!has_module_access('TELEVENTAS')) {
+    header('Location: ../../acceso_denegado.php');
+    exit;
+}
 /**
  * TOP PRODUCTOS MÁS VENDIDOS - TELEVENTAS
  * Reporte de rotación basado en pedidos de televentas por usuario
