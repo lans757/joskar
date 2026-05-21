@@ -1,10 +1,38 @@
 {
-    "TELEVENTAS": ["321", "PRUEBAS"],
-    "COMPRAS": ["321", "PRUEBAS"],
-    "ADMINISTRACION": ["321", "PRUEBAS"],
-    "COBRANZAS": ["321", "PRUEBAS"],
-    "ALMACEN": ["321", "PRUEBAS"],
-    "GERENCIA": ["321", "PRUEBAS"],
-    "SEGURIDAD": ["321"],
-    "INVENTARIO_HARDWARE": ["SOPORTE", "321", "PRUEBAS"]
+    "TELEVENTAS": [
+        "321",
+        "PRUEBAS"
+    ],
+    "COMPRAS": [
+        "321",
+        "PRUEBAS"
+    ],
+    "ADMINISTRACION": [
+        "321",
+        "PRUEBAS"
+    ],
+    "COBRANZAS": [
+        "321",
+        "PRUEBAS"
+    ],
+    "ALMACEN": [
+        "321",
+        "PRUEBAS"
+    ],
+    "GERENCIA": [
+        "321",
+        "PRUEBAS"
+    ],
+    "SEGURIDAD": [
+        "321"
+    ],
+    "INVENTARIO_HARDWARE": [
+        "SOPORTE",
+        "321",
+        "PRUEBAS"
+    ],
+    "MARKETING": [
+        "321",
+        "PRUEBAS"
+    ]
 }

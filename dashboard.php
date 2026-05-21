@@ -187,6 +187,33 @@ try {
                 </div>
             </a>
             <?php endif; ?>
+            <!-- Seguridad -->
+            <?php if (has_module_access('SEGURIDAD')): ?>
+            <a href="vistas/seguridad/vista_seguridad.php" class="card dept-card">
+                <div>
+                    <div class="dept-icon" style="color: #ef4444;"><i class="fas fa-shield-alt"></i></div>
+                    <h3>Seguridad</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Administración de accesos y roles del sistema.</p>
+                </div>
+                <div class="dept-status">
+                    <div class="status-dot" style="background: #ef4444; box-shadow: 0 0 10px #ef4444;"></div> Control Activo
+                </div>
+            </a>
+            <?php endif; ?>
+
+            <!-- Marketing -->
+            <?php if (has_module_access('MARKETING')): ?>
+            <a href="vistas/marketing/vista_marketing.php" class="card dept-card">
+                <div>
+                    <div class="dept-icon" style="color: #3b82f6;"><i class="fas fa-bullhorn"></i></div>
+                    <h3>Marketing</h3>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px;">Indicadores de marketing y campañas.</p>
+                </div>
+                <div class="dept-status">
+                    <div class="status-dot" style="background: #3b82f6; box-shadow: 0 0 10px #3b82f6;"></div> Esperando KPIs
+                </div>
+            </a>
+            <?php endif; ?>
         </div>
     </div>
 </main>

@@ -62,6 +62,20 @@ if (!isset($activePage)) $activePage = "dashboard";
             </a>
         </li>
         <?php endif; ?>
+        <?php if (has_module_access('SEGURIDAD')): ?>
+        <li>
+            <a href="<?php echo $path_prefix; ?>vistas/seguridad/vista_seguridad.php" class="<?php echo ($activePage == 'seguridad' ? 'active' : ''); ?>">
+                <i class="fas fa-shield-alt"></i> Panel de Seguridad
+            </a>
+        </li>
+        <?php endif; ?>
+        <?php if (has_module_access('MARKETING')): ?>
+        <li>
+            <a href="<?php echo $path_prefix; ?>vistas/marketing/vista_marketing.php" class="<?php echo ($activePage == 'marketing' ? 'active' : ''); ?>">
+                <i class="fas fa-bullhorn"></i> Indicadores Marketing
+            </a>
+        </li>
+        <?php endif; ?>
         
         <li class="sidebar-footer" style="margin-top: auto;">
             <a href="<?php echo $path_prefix; ?>logout.php" style="color: var(--accent-red);">
