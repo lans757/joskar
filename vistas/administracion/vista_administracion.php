@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/auth.php';
-require_login();
+require_module_access('ADMINISTRACION');
 $pageTitle = "ProteoERP | Administración";
 $activePage = "administracion";
 $path_prefix = "../../";

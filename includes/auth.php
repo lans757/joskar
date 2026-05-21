@@ -30,6 +30,28 @@ function require_login_json() {
     }
 }
 
+function has_module_access(string $module): bool {
+    require_login();
+
+    static $accesos = null;
+    if ($accesos === null) {
+        $jsonPath = dirname(__DIR__) . '/includes/accesos.json';
+        $raw = @file_get_contents($jsonPath);
+        $accesos = $raw !== false ? json_decode($raw, true) : [];
+    }
+
+    $user = $_SESSION['user_id'] ?? '';
+    return !empty($accesos[$module]) && in_array($user, $accesos[$module], true);
+}
+
+function require_module_access(string $module) {
+    if (!has_module_access($module)) {
+        $base = _app_web_base();
+        header('Location: ' . $base . '/errors/403.php');
+        exit;
+    }
+}
+
 function require_supervisor() {
     require_login();
     if (empty($_SESSION['is_supervisor'])) {

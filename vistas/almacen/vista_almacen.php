@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../includes/auth.php';
-require_login();
+require_module_access('ALMACEN');
 $pageTitle  = "ProteoERP Dashboard | Almacén";
 $activePage = "almacen";
 $path_prefix = "../../";
