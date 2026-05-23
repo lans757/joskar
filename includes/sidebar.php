@@ -72,7 +72,7 @@ if (!isset($activePage)) $activePage = "dashboard";
         <?php if (has_module_access('MARKETING')): ?>
         <li>
             <a href="<?php echo $path_prefix; ?>vistas/marketing/vista_marketing.php" class="<?php echo ($activePage == 'marketing' ? 'active' : ''); ?>">
-                <i class="fas fa-bullhorn"></i> Indicadores Marketing
+                <i class="fas fa-hashtag"></i> Indicadores RRSS
             </a>
         </li>
         <?php endif; ?>
