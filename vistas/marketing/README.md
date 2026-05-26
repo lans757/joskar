@@ -45,3 +45,13 @@ Esto creará la tabla y poblará la base de datos de producción con el históri
 | **Engagement Rate (ER)** | Porcentaje de la audiencia que interactúa respecto al alcance obtenido. | `(Interacciones / Alcance) * 100` |
 | **CTR de Campaña** | *Click-Through Rate*. Qué porcentaje de personas que vio la publicidad dio clic en ella. | `(Clics / Alcance) * 100` |
 | **Delta (%)** | Crecimiento o decrecimiento comparando el mes actual con el inmediato anterior. | `((Mes Actual - Mes Anterior) / Mes Anterior) * 100` |
+
+## Vista de Ofertas Aplicadas (`vista_descuentos.php`)
+
+Este módulo fue rediseñado para enfocarse en el impacto comercial de las campañas promocionales:
+
+### Optimizaciones y Lógica de Negocio
+- **Filtro de Fechas Exhaustivo:** Los filtros "Desde" y "Hasta" cubren automáticamente el rango completo de horas del día seleccionado (añadiendo los sufijos `00:00:00` y `23:59:59` en las consultas de base de datos) asegurando la total captura de transacciones.
+- **Gráfico Principal:** Consolidado para mostrar únicamente el desempeño en dólares por proveedor, eliminando datasets visuales de volumen que saturaban la pantalla.
+- **Deduplicación de Datos (SQL):** Se incorporaron subconsultas con la estructura `GROUP BY numa, codigoa` en la tabla `itpfacdescu`. Esto previene el inflado de sumatorias monetarias y de inventario que ocurría cuando existían registros duplicados por línea de factura en la base de datos de ProteoERP.
+- **Modal Interactivo (Drill-Down):** Al hacer clic en un proveedor, se dispara un AJAX que despliega un desglose agrupado por **Campaña/Oferta** en lugar de producto, proporcionando un análisis de "Rendimiento de Campañas" tal como es requerido por el departamento de marketing. Este modal incluye una gráfica secundaria en la misma vista, evitando abrir múltiples ventanas.

@@ -34,6 +34,78 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle_factura') {
     exit;
 }
 
+// --- Manejo AJAX: Detalle de proveedor ---
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle_proveedor') {
+    $prov_id = $_GET['prov_id'] ?? '';
+    $f_ini = $_GET['f_ini'] ?? date('Y-m-01');
+    $f_fin = $_GET['f_fin'] ?? date('Y-m-d');
+    $f_ini_q = $f_ini . ' 00:00:00';
+    $f_fin_q = $f_fin . ' 23:59:59';
+    
+    header('Content-Type: application/json');
+    try {
+        $prov_filter_ajax = "";
+        $params_ajax = [':ini' => $f_ini_q, ':fin' => $f_fin_q];
+        if ($prov_id === '') {
+            $prov_filter_ajax = " AND (s.prvreg IS NULL OR s.prvreg = '') ";
+        } else {
+            $prov_filter_ajax = " AND s.prvreg = :prov ";
+            $params_ajax[':prov'] = $prov_id;
+        }
+
+        // Totales del proveedor
+        $stmt_tot = $pdo->prepare("
+            SELECT 
+                COUNT(DISTINCT u.numa) AS total_facturas,
+                SUM(u.cana) AS total_unidades,
+                SUM(u.monto) AS total_monto
+            FROM (
+                SELECT 
+                    d.numa, d.codigoa,
+                    MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.cana')) AS DECIMAL(10,2))) AS cana,
+                    MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.cana')) AS DECIMAL(10,2)) * CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.preca')) AS DECIMAL(10,2))) AS monto
+                FROM itpfacdescu d
+                LEFT JOIN sinv s ON d.codigoa = s.codigo
+                WHERE d.fecha >= :ini AND d.fecha <= :fin $prov_filter_ajax
+                GROUP BY d.numa, d.codigoa
+            ) u
+        ");
+        $stmt_tot->execute($params_ajax);
+        $totales = $stmt_tot->fetch(PDO::FETCH_ASSOC);
+
+        // Desglose por Oferta/Campaña
+        $stmt_prod = $pdo->prepare("
+            SELECT 
+                u.nombre AS Descripcion,
+                COUNT(DISTINCT u.numa) AS TotalFacturas,
+                SUM(u.cana) AS TotalUnidades,
+                SUM(u.monto) AS TotalMonto
+            FROM (
+                SELECT 
+                    d.numa, d.codigoa, MAX(d.nombre) AS nombre,
+                    MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.cana')) AS DECIMAL(10,2))) AS cana,
+                    MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.cana')) AS DECIMAL(10,2)) * CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.preca')) AS DECIMAL(10,2))) AS monto
+                FROM itpfacdescu d
+                LEFT JOIN sinv s ON d.codigoa = s.codigo
+                WHERE d.fecha >= :ini AND d.fecha <= :fin $prov_filter_ajax
+                GROUP BY d.numa, d.codigoa
+            ) u
+            GROUP BY u.nombre
+            ORDER BY TotalUnidades DESC
+        ");
+        $stmt_prod->execute($params_ajax);
+        $productos = $stmt_prod->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'totales' => $totales,
+            'productos' => $productos
+        ]);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => $e->getMessage()]);
+    }
+    exit;
+}
+
 $pageTitle = "ProteoERP | Dashboard Ofertas Aplicadas";
 $activePage = "marketing";
 $path_prefix = "../../";
@@ -58,52 +130,70 @@ include('../../includes/sidebar.php');
 
 $f_ini = $_GET['f_ini'] ?? date('Y-m-01');
 $f_fin = $_GET['f_fin'] ?? date('Y-m-d');
+$f_prov = $_GET['f_prov'] ?? '';
+$f_ini_q = $f_ini . ' 00:00:00';
+$f_fin_q = $f_fin . ' 23:59:59';
 
-// Consulta para Gráfico: Agrupado por Día de la Semana
-$stmt_dias = $pdo->prepare("
+// Obtener lista de proveedores para el select
+$stmt_prv = $pdo->query("SELECT proveed, nombre FROM sprv ORDER BY nombre");
+$proveedores = $stmt_prv->fetchAll(PDO::FETCH_ASSOC);
+
+// Filtro de proveedor
+$prov_filter = '';
+$params = [':ini' => $f_ini_q, ':fin' => $f_fin_q];
+if (!empty($f_prov)) {
+    $prov_filter = " AND pv.proveed = :prov ";
+    $params[':prov'] = $f_prov;
+}
+
+// Totales Globales
+$stmt_totals = $pdo->prepare("
     SELECT 
-        DAYOFWEEK(d.fecha) AS dia_num,
-        COUNT(DISTINCT d.numa) AS total_facturas,
-        COUNT(d.codigoa) AS total_productos
-    FROM itpfacdescu d
-    WHERE d.fecha >= :ini AND d.fecha <= :fin
-    GROUP BY dia_num
-    ORDER BY dia_num
+        COUNT(DISTINCT u.numa) AS total_facturas,
+        SUM(u.cana) AS total_unidades,
+        SUM(u.monto) AS total_monto
+    FROM (
+        SELECT 
+            d.numa, d.codigoa,
+            MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.cana')) AS DECIMAL(10,2))) AS cana,
+            MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.cana')) AS DECIMAL(10,2)) * CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.preca')) AS DECIMAL(10,2))) AS monto
+        FROM itpfacdescu d
+        LEFT JOIN sinv s ON d.codigoa = s.codigo
+        LEFT JOIN sprv pv ON s.prvreg = pv.proveed
+        WHERE d.fecha >= :ini AND d.fecha <= :fin
+        $prov_filter
+        GROUP BY d.numa, d.codigoa
+    ) u
 ");
-$stmt_dias->execute([':ini' => $f_ini, ':fin' => $f_fin]);
-$datos_dias = $stmt_dias->fetchAll(PDO::FETCH_ASSOC);
+$stmt_totals->execute($params);
+$totals = $stmt_totals->fetch(PDO::FETCH_ASSOC);
+$total_fac_global = $totals['total_facturas'] ?? 0;
+$total_unidades_global = $totals['total_unidades'] ?? 0;
+$total_monto_global = $totals['total_monto'] ?? 0;
 
-// Mapeo manual de días
-$nombres_dias = [1 => 'Domingo', 2 => 'Lunes', 3 => 'Martes', 4 => 'Miércoles', 5 => 'Jueves', 6 => 'Viernes', 7 => 'Sábado'];
-$chartLabels = [];
-$chartDataFac = [];
-$chartDataProd = [];
-$total_fac_global = 0;
-$total_prod_global = 0;
-$dia_estrella = ['nombre' => '-', 'total' => 0];
-
-// Inicializar todos los días en 0
-foreach($nombres_dias as $num => $nombre) {
-    $chartLabels[$num] = $nombre;
-    $chartDataFac[$num] = 0;
-    $chartDataProd[$num] = 0;
-}
-
-foreach($datos_dias as $row) {
-    $num = $row['dia_num'];
-    $chartDataFac[$num] = (int)$row['total_facturas'];
-    $chartDataProd[$num] = (int)$row['total_productos'];
-    $total_fac_global += $row['total_facturas'];
-    $total_prod_global += $row['total_productos'];
-    if($row['total_facturas'] > $dia_estrella['total']) {
-        $dia_estrella = ['nombre' => $nombres_dias[$num], 'total' => $row['total_facturas']];
-    }
-}
-
-// Reindexar arrays para JS
-$chartLabels = array_values($chartLabels);
-$chartDataFac = array_values($chartDataFac);
-$chartDataProd = array_values($chartDataProd);
+// Consulta para Gráfico: Agrupado por Campaña/Oferta
+$stmt_chart = $pdo->prepare("
+    SELECT 
+        COALESCE(u.nombre, 'Sin Oferta') AS campana_nombre,
+        COUNT(DISTINCT u.numa) AS total_facturas,
+        SUM(u.cana) AS total_unidades,
+        SUM(u.monto) AS total_monto
+    FROM (
+        SELECT 
+            d.numa, d.codigoa, MAX(d.nombre) AS nombre,
+            MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.cana')) AS DECIMAL(10,2))) AS cana,
+            MAX(CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.cana')) AS DECIMAL(10,2)) * CAST(JSON_UNQUOTE(JSON_EXTRACT(d.last_insert, '$.preca')) AS DECIMAL(10,2))) AS monto
+        FROM itpfacdescu d
+        LEFT JOIN sinv s ON d.codigoa = s.codigo
+        WHERE d.fecha >= :ini AND d.fecha <= :fin
+        $prov_filter
+        GROUP BY d.numa, d.codigoa
+    ) u
+    GROUP BY campana_nombre
+    ORDER BY total_unidades DESC
+");
+$stmt_chart->execute($params);
+$chart_data = $stmt_chart->fetchAll(PDO::FETCH_ASSOC);
 
 // Consulta para la Tabla: Agrupado por Factura
 $stmt_fac = $pdo->prepare("
@@ -118,17 +208,21 @@ $stmt_fac = $pdo->prepare("
     FROM itpfacdescu d
     LEFT JOIN pfac p ON d.numa = p.numero
     LEFT JOIN zona z ON p.zona = z.codigo
+    LEFT JOIN sinv s ON d.codigoa = s.codigo
+    LEFT JOIN sprv pv ON s.prvreg = pv.proveed
     WHERE d.fecha >= :ini AND d.fecha <= :fin
+    $prov_filter
     GROUP BY d.fecha, d.numa, p.cod_cli, p.nombre, z.nombre
     ORDER BY d.fecha DESC, d.numa DESC
 ");
-$stmt_fac->execute([':ini' => $f_ini, ':fin' => $f_fin]);
+$stmt_fac->execute($params);
 $facturas = $stmt_fac->fetchAll(PDO::FETCH_ASSOC);
 
 ?>
 
 <!-- Load Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
 <main class="main-content">
 <div class="content-wrapper">
@@ -164,7 +258,7 @@ $facturas = $stmt_fac->fetchAll(PDO::FETCH_ASSOC);
                 </p>
             </div>
             
-            <form method="GET" style="display: flex; gap: 12px; align-items: flex-end; background: var(--bg-elevated); padding: 12px 20px; border-radius: 16px; border: 1px solid var(--border);">
+            <form method="GET" style="display: flex; gap: 12px; align-items: flex-end; background: var(--bg-elevated); padding: 12px 20px; border-radius: 16px; border: 1px solid var(--border); flex-wrap: wrap;">
                 <div>
                     <label style="display:block; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Desde</label>
                     <input type="date" name="f_ini" value="<?php echo $f_ini; ?>" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); border-radius: 8px; padding: 6px 12px; font-family: var(--font-mono); font-size: 0.85rem;">
@@ -173,7 +267,18 @@ $facturas = $stmt_fac->fetchAll(PDO::FETCH_ASSOC);
                     <label style="display:block; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Hasta</label>
                     <input type="date" name="f_fin" value="<?php echo $f_fin; ?>" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); border-radius: 8px; padding: 6px 12px; font-family: var(--font-mono); font-size: 0.85rem;">
                 </div>
-                <button type="submit" style="background: var(--social-color); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;">Filtrar</button>
+                <div>
+                    <label style="display:block; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-bottom: 4px;">Proveedor</label>
+                    <select name="f_prov" style="background: var(--bg-base); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); border-radius: 8px; padding: 6px 12px; font-size: 0.85rem; max-width: 200px;">
+                        <option value="">Todos los proveedores</option>
+                        <?php foreach($proveedores as $prov): ?>
+                            <option value="<?= htmlspecialchars($prov['proveed']) ?>" <?= $f_prov === $prov['proveed'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($prov['nombre']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit" style="background: var(--social-color); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; height: 34px;">Filtrar</button>
             </form>
         </div>
 
@@ -182,32 +287,34 @@ $facturas = $stmt_fac->fetchAll(PDO::FETCH_ASSOC);
             <!-- Mini KPIs -->
             <div style="display:flex; flex-direction:column; gap:16px;">
                 <div class="glass-panel" style="padding: 24px; flex:1; position:relative;">
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #10b981, transparent);"></div>
+                    <span style="font-size: 1.8rem; margin-bottom:12px; display:block;">💵</span>
+                    <div class="kpi-value">$<?php echo number_format($total_monto_global, 2, ',', '.'); ?></div>
+                    <div class="kpi-title">Monto Total</div>
+                </div>
+                <div class="glass-panel" style="padding: 24px; flex:1; position:relative;">
                     <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--social-color), transparent);"></div>
                     <span style="font-size: 1.8rem; margin-bottom:12px; display:block;">🧾</span>
                     <div class="kpi-value"><?php echo number_format($total_fac_global, 0, ',', '.'); ?></div>
-                    <div class="kpi-title">Facturas c/ Descuento</div>
+                    <div class="kpi-title">Pedidos c/ Descuento</div>
                 </div>
                 <div class="glass-panel" style="padding: 24px; flex:1; position:relative;">
-                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #10b981, transparent);"></div>
+                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #3b82f6, transparent);"></div>
                     <span style="font-size: 1.8rem; margin-bottom:12px; display:block;">📦</span>
-                    <div class="kpi-value"><?php echo number_format($total_prod_global, 0, ',', '.'); ?></div>
-                    <div class="kpi-title">Total Prod. en Oferta</div>
-                </div>
-                <div class="glass-panel" style="padding: 24px; flex:1; position:relative;">
-                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, #fbbf24, transparent);"></div>
-                    <span style="font-size: 1.8rem; margin-bottom:12px; display:block;">⭐</span>
-                    <div class="kpi-value" style="font-size:1.8rem;"><?php echo $dia_estrella['nombre']; ?></div>
-                    <div class="kpi-title">Día con Mayor Demanda</div>
+                    <div class="kpi-value"><?php echo number_format($total_unidades_global, 2, ',', '.'); ?></div>
+                    <div class="kpi-title">Unidades Pedidas</div>
                 </div>
             </div>
 
             <!-- Chart -->
             <div class="glass-panel" style="padding: 24px; display:flex; flex-direction:column;">
-                <div style="font-size:0.85rem; font-weight: 700; color:var(--text-muted); letter-spacing:0.1em; margin-bottom:16px; text-transform: uppercase;">
-                    Facturas con Descuento por Día de la Semana
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                    <div style="font-size:0.85rem; font-weight: 700; color:var(--text-muted); letter-spacing:0.1em; text-transform: uppercase;">
+                        CAMPAÑAS DE DESCUENTOS Y PROMOCIONES
+                    </div>
                 </div>
-                <div style="flex:1; position:relative; min-height: 300px;">
-                    <canvas id="barDias"></canvas>
+                <div style="flex:1; position:relative; min-height: 400px;">
+                    <canvas id="barProveedores"></canvas>
                 </div>
             </div>
         </div>
@@ -293,32 +400,108 @@ $facturas = $stmt_fac->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </div>
 
+<!-- Modal Detalle Proveedor -->
+<div class="modal-overlay" id="modalProveedor">
+    <div class="modal-box">
+        <div class="modal-hd">
+            <h3>Desglose: <span id="modal-prov-nombre" style="color:var(--social-color);"></span></h3>
+            <button class="modal-close" onclick="cerrarModalProveedor()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <!-- KPIs del proveedor -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div class="glass-panel" style="padding: 16px; text-align: center; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2);">
+                    <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Monto Total</div>
+                    <div id="modal-prov-monto" style="font-size:1.4rem; font-weight:700; color:#10b981;">$0,00</div>
+                </div>
+                <div class="glass-panel" style="padding: 16px; text-align: center; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2);">
+                    <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Unidades Pedidas</div>
+                    <div id="modal-prov-unidades" style="font-size:1.4rem; font-weight:700; color:#3b82f6;">0</div>
+                </div>
+                <div class="glass-panel" style="padding: 16px; text-align: center; background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.2);">
+                    <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Pedidos</div>
+                    <div id="modal-prov-pedidos" style="font-size:1.4rem; font-weight:700; color:#6366f1;">0</div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:12px;">
+                <h4 style="margin:0; color:var(--text-primary);">Desglose por Campaña/Oferta</h4>
+            </div>
+
+            <div id="modal-chart-container" style="position:relative; height: 250px; margin-bottom: 24px; display:none; background: var(--bg-base); padding: 16px; border-radius: 12px; border: 1px solid var(--border);">
+                <canvas id="modalBarChart"></canvas>
+            </div>
+
+            <div id="modal-prov-loading" style="text-align:center; padding:40px; display:none;">
+                <div class="animate-spin" style="width:40px; height:40px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--social-color); border-radius:50%; margin:0 auto 16px;"></div>
+                <p style="color:var(--text-muted);">Cargando desglose...</p>
+            </div>
+            <div style="overflow-x:auto; max-height: 400px;">
+                <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.85rem; white-space:nowrap;">
+                    <thead style="position: sticky; top: 0; background: var(--bg-base); z-index: 10;">
+                        <tr style="border-bottom:1px solid var(--border);">
+                            <th style="padding:10px; color:var(--text-muted);">Campaña / Oferta</th>
+                            <th style="padding:10px; color:var(--text-muted); text-align:center;">Pedidos</th>
+                            <th style="padding:10px; color:var(--text-muted); text-align:center;">Unidades</th>
+                            <th style="padding:10px; color:var(--text-muted); text-align:right;">Monto Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modal-prov-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 </main>
 
 <script>
-// Inicializar Gráfico
-const ctx = document.getElementById('barDias');
+// Registrar el plugin de datalabels
+Chart.register(ChartDataLabels);
+
+// Formateador de números
+const numFormatter = new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Inicializar Gráfico Principal
+const ctx = document.getElementById('barProveedores');
 if(ctx) {
+    const rawLabels = <?php echo json_encode(array_column($chart_data, 'campana_nombre')); ?>;
+    const cleanLabels = rawLabels.map(l => l.length > 25 ? l.substring(0,25)+'...' : l);
+    
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: <?php echo json_encode($chartLabels); ?>,
+            labels: cleanLabels,
             datasets: [{
-                label: 'Facturas con Descuento',
-                data: <?php echo json_encode($chartDataFac); ?>,
-                backgroundColor: 'rgba(99, 102, 241, 0.8)',
-                borderColor: 'rgba(99, 102, 241, 1)',
+                label: 'Cantidades',
+                data: <?php echo json_encode(array_column($chart_data, 'total_unidades')); ?>,
+                backgroundColor: '#004aad',
+                borderColor: '#004aad',
                 borderWidth: 1,
-                borderRadius: 4
+                borderRadius: 8,
+                barPercentage: 0.6
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: { 
+                legend: { display: false } 
+            },
             scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
-                x: { grid: { display: false } }
+                y: { 
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    title: { display: true, text: 'Montos ($)', color: 'rgba(255,255,255,0.5)' },
+                    ticks: { color: 'rgba(255,255,255,0.5)' },
+                    grid: { color: 'rgba(255,255,255,0.05)' } 
+                },
+                x: { 
+                    ticks: { color: 'rgba(255,255,255,0.5)' },
+                    grid: { display: false } 
+                }
             }
         }
     });
@@ -364,6 +547,101 @@ function abrirModalFactura(numa) {
 
 function cerrarModalFactura() {
     document.getElementById('modalFactura').classList.remove('active');
+}
+
+function abrirModalProveedor(provId, provName) {
+    document.getElementById('modalProveedor').classList.add('active');
+    document.getElementById('modal-prov-nombre').innerText = provName;
+    document.getElementById('modal-prov-loading').style.display = 'block';
+    document.getElementById('modal-prov-tbody').innerHTML = '';
+    
+    // Reset KPIs y Gráfico
+    document.getElementById('modal-prov-monto').innerText = '$0,00';
+    document.getElementById('modal-prov-unidades').innerText = '0';
+    document.getElementById('modal-prov-pedidos').innerText = '0';
+    document.getElementById('modal-chart-container').style.display = 'none';
+
+    const f_ini = document.querySelector('input[name="f_ini"]').value;
+    const f_fin = document.querySelector('input[name="f_fin"]').value;
+
+    fetch(`?ajax=detalle_proveedor&prov_id=${encodeURIComponent(provId)}&f_ini=${f_ini}&f_fin=${f_fin}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('modal-prov-loading').style.display = 'none';
+            if(data.error) {
+                document.getElementById('modal-prov-tbody').innerHTML = `<tr><td colspan="5" style="color:var(--accent-red); padding:16px;">${data.error}</td></tr>`;
+                return;
+            }
+
+            // Actualizar KPIs
+            if (data.totales) {
+                document.getElementById('modal-prov-monto').innerText = '$' + parseFloat(data.totales.total_monto || 0).toLocaleString('es-VE', {minimumFractionDigits:2});
+                document.getElementById('modal-prov-unidades').innerText = parseFloat(data.totales.total_unidades || 0).toLocaleString('es-VE');
+                document.getElementById('modal-prov-pedidos').innerText = parseFloat(data.totales.total_facturas || 0).toLocaleString('es-VE');
+            }
+
+            // Llenar tabla y preparar datos para gráfico
+            if(!data.productos || !data.productos.length) {
+                document.getElementById('modal-prov-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--text-muted); padding:16px;">No se encontraron campañas.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            const chartLabels = [];
+            const chartData = [];
+
+            // Tomamos los top 15 para el gráfico
+            const topProducts = data.productos.slice(0, 15);
+            topProducts.forEach(p => {
+                const name = p.Descripcion || 'Sin Nombre';
+                chartLabels.push(name.length > 25 ? name.substring(0, 25) + '...' : name);
+                chartData.push(parseFloat(p.TotalUnidades || 0));
+            });
+
+            data.productos.forEach(p => {
+                html += `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <td style="padding:10px; font-weight:600; color:var(--text-primary); max-width:350px; overflow:hidden; text-overflow:ellipsis;" title="${p.Descripcion}">${p.Descripcion || '-'}</td>
+                        <td style="padding:10px; font-family:var(--font-mono); text-align:center;">${parseFloat(p.TotalFacturas || 0).toLocaleString('es-VE')}</td>
+                        <td style="padding:10px; font-family:var(--font-mono); text-align:center; color:#3b82f6;">${parseFloat(p.TotalUnidades || 0).toLocaleString('es-VE')}</td>
+                        <td style="padding:10px; font-family:var(--font-mono); text-align:right; color:#10b981;">$${parseFloat(p.TotalMonto || 0).toLocaleString('es-VE', {minimumFractionDigits:2})}</td>
+                    </tr>
+                `;
+            });
+            document.getElementById('modal-prov-tbody').innerHTML = html;
+
+            // Renderizar gráfico
+            document.getElementById('modal-chart-container').style.display = 'block';
+            if (window.modalChartInstance) {
+                window.modalChartInstance.destroy();
+            }
+            const ctxModal = document.getElementById('modalBarChart').getContext('2d');
+            window.modalChartInstance = new Chart(ctxModal, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Unidades Pedidas',
+                        data: chartData,
+                        backgroundColor: '#0056b3', // Color azul oscuro similar a Canva
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
+                        x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.5)' } }
+                    }
+                }
+            });
+        });
+}
+
+function cerrarModalProveedor() {
+    document.getElementById('modalProveedor').classList.remove('active');
 }
 </script>
 
