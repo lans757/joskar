@@ -61,6 +61,40 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'detalle') {
     exit;
 }
 
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'creditos') {
+    $ini = $_GET['f_ini'] ?? date('Y-m-01');
+    $fin = $_GET['f_fin'] ?? date('Y-m-d');
+    header('Content-Type: application/json');
+    try {
+        $stmt_cred = $pdo->prepare("
+            SELECT 
+                s.numero as nc_numero, 
+                s.cod_cli, 
+                s.nombre as cliente, 
+                s.tipo_ref, 
+                s.num_ref as factura, 
+                s.fecha, 
+                s.monto as monto_bs,
+                COALESCE(NULLIF((SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= s.fecha ORDER BY fecha DESC LIMIT 1), 0), 1) as tasa,
+                f.totalg as total_fac_bs
+            FROM smov s
+            LEFT JOIN sfac f ON s.num_ref = f.numero
+            WHERE s.tipo_doc = 'NC'
+              AND s.numero LIKE 'D%'
+              AND s.tipo_ref IN ('AN', 'AB')
+              AND s.fecha BETWEEN :ini AND :fin
+            ORDER BY s.fecha DESC, s.numero DESC
+        ");
+        $stmt_cred->execute([':ini' => $ini, ':fin' => $fin]);
+        $creditos = $stmt_cred->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(['creditos' => $creditos]);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => 'AJAX_ERR: ' . $e->getMessage()]);
+    }
+    exit;
+}
+
 $pageTitle   = "ProteoERP | Cuadre de Caja";
 $activePage  = "cobranzas";
 $path_prefix = "../../";
@@ -149,6 +183,24 @@ try {
     $total_bs  = $kpis['total_bs']  ?? 0;
     $total_usd = $kpis['total_usd'] ?? 0;
 
+    // Notas de Crédito (NC) KPI
+    $stmt_nc = $pdo->prepare("
+        SELECT 
+            COUNT(*) as nc_ops,
+            SUM(monto) as nc_bs, 
+            SUM(ROUND(monto / COALESCE(NULLIF((SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= smov.fecha ORDER BY fecha DESC LIMIT 1), 0), 1), 2)) as nc_usd 
+        FROM smov 
+        WHERE tipo_doc = 'NC' 
+          AND numero LIKE 'D%' 
+          AND tipo_ref IN ('AN', 'AB')
+          AND fecha BETWEEN :ini AND :fin
+    ");
+    $stmt_nc->execute([':ini' => $f_ini, ':fin' => $f_fin]);
+    $nc_kpis = $stmt_nc->fetch(PDO::FETCH_ASSOC);
+    $total_nc_ops = $nc_kpis['nc_ops'] ?? 0;
+    $total_nc_bs  = $nc_kpis['nc_bs'] ?? 0;
+    $total_nc_usd = $nc_kpis['nc_usd'] ?? 0;
+
     // Resumen Consolidado (Small Table)
     $stmt_res = $pdo->prepare("SELECT banco as banco_pago, COUNT(*) as ops, SUM(monto) as total_bs, SUM(montod) as total_usd FROM ($sql_agestion) AS result GROUP BY banco ORDER BY total_usd DESC");
     $stmt_res->execute($params);
@@ -218,6 +270,19 @@ function renderEstatus($e) {
             <div class="metric-content">
                 <span class="metric-label">Recaudado (USD)</span>
                 <p class="metric-value">$ <?php echo number_format($total_usd,2,'.',','); ?></p>
+            </div>
+        </div>
+        <div class="card metric-card alert" onclick="abrirModalCreditos()" style="cursor: pointer;">
+            <div class="metric-icon"><i class="fas fa-undo-alt"></i></div>
+            <div class="metric-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <span class="metric-label">Notas de Crédito</span>
+                    <span class="badge" style="background: rgba(255, 82, 82, 0.15); color: var(--accent-red); font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(255, 82, 82, 0.25);">
+                        <?php echo $total_nc_ops; ?> Operaciones
+                    </span>
+                </div>
+                <p class="metric-value">$ <?php echo number_format($total_nc_usd,2,'.',','); ?></p>
+                <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Bs. <?php echo number_format($total_nc_bs,2,',','.'); ?></span>
             </div>
         </div>
     </div>
@@ -559,6 +624,93 @@ document.addEventListener('keydown', (e) => {
 modal.addEventListener('click', (e) => {
     if (e.target === modal) cerrarModal();
 });
+
+/* ---- Modal Notas de Crédito Detallado ---- */
+async function abrirModalCreditos() {
+    modal.classList.add('open');
+    modalHD.innerHTML = `<div>
+        <h3><i class="fas fa-undo-alt"></i> Detalle de Notas de Crédito</h3>
+        <div class="mref">Periodo: <?php echo date('d/m/Y', strtotime($f_ini)); ?> al <?php echo date('d/m/Y', strtotime($f_fin)); ?></div>
+    </div>`;
+    modalBody.innerHTML = '<div class="modal-loading"><div class="spinner"></div><span>Solicitando datos...</span></div>';
+
+    try {
+        const resp = await fetch(`?ajax=creditos&f_ini=<?php echo $f_ini; ?>&f_fin=<?php echo $f_fin; ?>`);
+        const data = await resp.json();
+
+        if (data.error) throw new Error(data.error);
+        renderModalCreditos(data);
+    } catch (err) {
+        modalBody.innerHTML = `<div class="modal-no-fac"><i class="fas fa-triangle-exclamation"></i><br>No se pudo cargar el detalle.<br><small>${err.message}</small></div>`;
+    }
+}
+
+function renderModalCreditos(data) {
+    const creds = data.creditos;
+
+    if (creds.length === 0) {
+        modalBody.innerHTML = '<div class="modal-no-fac"><i class="fas fa-info-circle"></i> No hay notas de crédito registradas en este periodo.</div>';
+        return;
+    }
+
+    let html = `
+        <div style="margin-bottom: 15px; opacity: 0.8; font-size: 0.9rem;">
+            Se encontraron <strong>${creds.length}</strong> notas de crédito aplicadas como abono/anticipo.
+        </div>
+        <div class="table-container" style="max-height: 450px; overflow-y: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>N° NOTA CRÉDITO</th>
+                        <th>FECHA</th>
+                        <th>CLIENTE</th>
+                        <th>REF.</th>
+                        <th>N° FACTURA</th>
+                        <th class="r">MONTO BS</th>
+                        <th class="r">MONTO USD</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+    let totBs = 0;
+    let totUsd = 0;
+
+    creds.forEach(c => {
+        const mBs = parseFloat(c.monto_bs);
+        const rate = parseFloat(c.tasa);
+        const mUsd = rate > 0 ? parseFloat((mBs / rate).toFixed(2)) : 0;
+        
+        totBs += mBs;
+        totUsd += mUsd;
+
+        html += `
+            <tr>
+                <td><span class="code-badge" style="background:rgba(255,82,82,0.15); color:var(--accent-red); border:1px solid rgba(255,82,82,0.25);">${c.nc_numero}</span></td>
+                <td>${fmtFec(c.fecha)}</td>
+                <td>
+                    <div style="font-weight:700; color:var(--text-main); font-size:0.8rem;">${c.cliente}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted);">${c.cod_cli}</div>
+                </td>
+                <td class="c"><span class="badge" style="padding: 2px 6px; font-size: 0.75rem; background:rgba(0,180,255,0.15); color:var(--primary);">${c.tipo_ref}</span></td>
+                <td>${c.factura ? `<span class="code-badge">${c.factura}</span>` : '<span style="color:var(--text-muted);">—</span>'}</td>
+                <td class="r" style="font-weight:700;">${fmtCur(mBs, '')}</td>
+                <td class="r" style="font-weight:700; color:var(--accent-green);">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(mUsd)}</td>
+            </tr>`;
+    });
+
+    html += `</tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" class="text-right" style="font-weight:800; opacity:0.8;">TOTAL PERIODO:</td>
+                    <td class="r" style="font-weight:800; color:var(--text-main);">${fmtCur(totBs, '')}</td>
+                    <td class="r" style="font-weight:800; color:var(--accent-green);">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(totUsd)}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>`;
+
+    modalBody.innerHTML = html;
+}
 </script>
 
 <?php include('../../includes/footer.php'); ?>
