@@ -35,9 +35,9 @@ http_response_code($errorCode);
             }
         })();
     </script>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <script src="../assets/js/error-reporter.js"></script>
-    <script src="../assets/js/theme.js"></script>
+    <link rel="stylesheet" href="/noti_pro/assets/css/style.css">
+    <script src="/noti_pro/assets/js/error-reporter.js"></script>
+    <script src="/noti_pro/assets/js/theme.js"></script>
     <script>
         window.ProteoLog && window.ProteoLog.error(
             'Página de error <?php echo (int)$errorCode; ?>:',
