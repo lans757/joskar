@@ -81,7 +81,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'creditos') {
             LEFT JOIN sfac f ON s.num_ref = f.numero
             WHERE s.tipo_doc = 'NC'
               AND s.numero LIKE 'D%'
-              AND s.tipo_ref IN ('AN', 'AB')
+              AND (s.tipo_ref IN ('AN', 'AB') OR s.tipo_ref IS NULL OR s.tipo_ref = '')
               AND s.fecha BETWEEN :ini AND :fin
             ORDER BY s.fecha DESC, s.numero DESC
         ");
@@ -89,6 +89,39 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'creditos') {
         $creditos = $stmt_cred->fetchAll(PDO::FETCH_ASSOC);
 
         echo json_encode(['creditos' => $creditos]);
+    } catch (PDOException $e) {
+        echo json_encode(['error' => 'AJAX_ERR: ' . $e->getMessage()]);
+    }
+    exit;
+}
+
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'debitos') {
+    $ini = $_GET['f_ini'] ?? date('Y-m-01');
+    $fin = $_GET['f_fin'] ?? date('Y-m-d');
+    header('Content-Type: application/json');
+    try {
+        $stmt_deb = $pdo->prepare("
+            SELECT 
+                s.numero as nd_numero, 
+                s.cod_cli, 
+                s.nombre as cliente, 
+                s.tipo_ref, 
+                s.num_ref as factura, 
+                s.fecha, 
+                s.monto as monto_bs,
+                COALESCE(NULLIF((SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= s.fecha ORDER BY fecha DESC LIMIT 1), 0), 1) as tasa,
+                f.totalg as total_fac_bs
+            FROM smov s
+            LEFT JOIN sfac f ON s.num_ref = f.numero
+            WHERE s.tipo_doc = 'ND'
+              AND s.numero LIKE 'A%'
+              AND s.fecha BETWEEN :ini AND :fin
+            ORDER BY s.fecha DESC, s.numero DESC
+        ");
+        $stmt_deb->execute([':ini' => $ini, ':fin' => $fin]);
+        $debitos = $stmt_deb->fetchAll(PDO::FETCH_ASSOC);
+
+        echo json_encode(['debitos' => $debitos]);
     } catch (PDOException $e) {
         echo json_encode(['error' => 'AJAX_ERR: ' . $e->getMessage()]);
     }
@@ -192,7 +225,7 @@ try {
         FROM smov 
         WHERE tipo_doc = 'NC' 
           AND numero LIKE 'D%' 
-          AND tipo_ref IN ('AN', 'AB')
+          AND (tipo_ref IN ('AN', 'AB') OR tipo_ref IS NULL OR tipo_ref = '')
           AND fecha BETWEEN :ini AND :fin
     ");
     $stmt_nc->execute([':ini' => $f_ini, ':fin' => $f_fin]);
@@ -200,6 +233,23 @@ try {
     $total_nc_ops = $nc_kpis['nc_ops'] ?? 0;
     $total_nc_bs  = $nc_kpis['nc_bs'] ?? 0;
     $total_nc_usd = $nc_kpis['nc_usd'] ?? 0;
+
+    // Notas de Débito (ND) KPI
+    $stmt_nd = $pdo->prepare("
+        SELECT 
+            COUNT(*) as nd_ops,
+            SUM(monto) as nd_bs, 
+            SUM(ROUND(monto / COALESCE(NULLIF((SELECT oficial FROM monecam WHERE moneda = 'USD' AND fecha <= smov.fecha ORDER BY fecha DESC LIMIT 1), 0), 1), 2)) as nd_usd 
+        FROM smov 
+        WHERE tipo_doc = 'ND' 
+          AND numero LIKE 'A%' 
+          AND fecha BETWEEN :ini AND :fin
+    ");
+    $stmt_nd->execute([':ini' => $f_ini, ':fin' => $f_fin]);
+    $nd_kpis = $stmt_nd->fetch(PDO::FETCH_ASSOC);
+    $total_nd_ops = $nd_kpis['nd_ops'] ?? 0;
+    $total_nd_bs  = $nd_kpis['nd_bs'] ?? 0;
+    $total_nd_usd = $nd_kpis['nd_usd'] ?? 0;
 
     // Resumen Consolidado (Small Table)
     $stmt_res = $pdo->prepare("SELECT banco as banco_pago, COUNT(*) as ops, SUM(monto) as total_bs, SUM(montod) as total_usd FROM ($sql_agestion) AS result GROUP BY banco ORDER BY total_usd DESC");
@@ -258,18 +308,12 @@ function renderEstatus($e) {
                 <p class="metric-value"><?php echo number_format($total_ops,0,',','.'); ?></p>
             </div>
         </div>
-        <div class="card metric-card primary">
-            <div class="metric-icon"><i class="fas fa-money-bill-wave"></i></div>
-            <div class="metric-content">
-                <span class="metric-label">Recaudado (BS)</span>
-                <p class="metric-value">Bs. <?php echo number_format($total_bs,2,',','.'); ?></p>
-            </div>
-        </div>
         <div class="card metric-card success">
             <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
             <div class="metric-content">
-                <span class="metric-label">Recaudado (USD)</span>
+                <span class="metric-label">Recaudado</span>
                 <p class="metric-value">$ <?php echo number_format($total_usd,2,'.',','); ?></p>
+                <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Bs. <?php echo number_format($total_bs,2,',','.'); ?></span>
             </div>
         </div>
         <div class="card metric-card alert" onclick="abrirModalCreditos()" style="cursor: pointer;">
@@ -283,6 +327,19 @@ function renderEstatus($e) {
                 </div>
                 <p class="metric-value">$ <?php echo number_format($total_nc_usd,2,'.',','); ?></p>
                 <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Bs. <?php echo number_format($total_nc_bs,2,',','.'); ?></span>
+            </div>
+        </div>
+        <div class="card metric-card warning" onclick="abrirModalDebitos()" style="cursor: pointer;">
+            <div class="metric-icon"><i class="fas fa-file-invoice"></i></div>
+            <div class="metric-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                    <span class="metric-label">Notas de Débito</span>
+                    <span class="badge" style="background: rgba(255, 171, 0, 0.15); color: var(--accent-yellow); font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(255, 171, 0, 0.25);">
+                        <?php echo $total_nd_ops; ?> Operaciones
+                    </span>
+                </div>
+                <p class="metric-value">$ <?php echo number_format($total_nd_usd,2,'.',','); ?></p>
+                <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Bs. <?php echo number_format($total_nd_bs,2,',','.'); ?></span>
             </div>
         </div>
     </div>
@@ -693,6 +750,93 @@ function renderModalCreditos(data) {
                 </td>
                 <td class="c"><span class="badge" style="padding: 2px 6px; font-size: 0.75rem; background:rgba(0,180,255,0.15); color:var(--primary);">${c.tipo_ref}</span></td>
                 <td>${c.factura ? `<span class="code-badge">${c.factura}</span>` : '<span style="color:var(--text-muted);">—</span>'}</td>
+                <td class="r" style="font-weight:700;">${fmtCur(mBs, '')}</td>
+                <td class="r" style="font-weight:700; color:var(--accent-green);">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(mUsd)}</td>
+            </tr>`;
+    });
+
+    html += `</tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5" class="text-right" style="font-weight:800; opacity:0.8;">TOTAL PERIODO:</td>
+                    <td class="r" style="font-weight:800; color:var(--text-main);">${fmtCur(totBs, '')}</td>
+                    <td class="r" style="font-weight:800; color:var(--accent-green);">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(totUsd)}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>`;
+
+    modalBody.innerHTML = html;
+}
+
+/* ---- Modal Notas de Débito Detallado ---- */
+async function abrirModalDebitos() {
+    modal.classList.add('open');
+    modalHD.innerHTML = `<div>
+        <h3><i class="fas fa-file-invoice"></i> Detalle de Notas de Débito</h3>
+        <div class="mref">Periodo: <?php echo date('d/m/Y', strtotime($f_ini)); ?> al <?php echo date('d/m/Y', strtotime($f_fin)); ?></div>
+    </div>`;
+    modalBody.innerHTML = '<div class="modal-loading"><div class="spinner"></div><span>Solicitando datos...</span></div>';
+
+    try {
+        const resp = await fetch(`?ajax=debitos&f_ini=<?php echo $f_ini; ?>&f_fin=<?php echo $f_fin; ?>`);
+        const data = await resp.json();
+
+        if (data.error) throw new Error(data.error);
+        renderModalDebitos(data);
+    } catch (err) {
+        modalBody.innerHTML = `<div class="modal-no-fac"><i class="fas fa-triangle-exclamation"></i><br>No se pudo cargar el detalle.<br><small>${err.message}</small></div>`;
+    }
+}
+
+function renderModalDebitos(data) {
+    const debs = data.debitos;
+
+    if (debs.length === 0) {
+        modalBody.innerHTML = '<div class="modal-no-fac"><i class="fas fa-info-circle"></i> No hay notas de débito registradas en este periodo.</div>';
+        return;
+    }
+
+    let html = `
+        <div style="margin-bottom: 15px; opacity: 0.8; font-size: 0.9rem;">
+            Se encontraron <strong>${debs.length}</strong> notas de débito aplicadas.
+        </div>
+        <div class="table-container" style="max-height: 450px; overflow-y: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>N° NOTA DÉBITO</th>
+                        <th>FECHA</th>
+                        <th>CLIENTE</th>
+                        <th>REF.</th>
+                        <th>N° FACTURA</th>
+                        <th class="r">MONTO BS</th>
+                        <th class="r">MONTO USD</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+    let totBs = 0;
+    let totUsd = 0;
+
+    debs.forEach(d => {
+        const mBs = parseFloat(d.monto_bs);
+        const rate = parseFloat(d.tasa);
+        const mUsd = rate > 0 ? parseFloat((mBs / rate).toFixed(2)) : 0;
+        
+        totBs += mBs;
+        totUsd += mUsd;
+
+        html += `
+            <tr>
+                <td><span class="code-badge" style="background:rgba(255,171,0,0.15); color:var(--accent-yellow); border:1px solid rgba(255,171,0,0.25);">${d.nd_numero}</span></td>
+                <td>${fmtFec(d.fecha)}</td>
+                <td>
+                    <div style="font-weight:700; color:var(--text-main); font-size:0.8rem;">${d.cliente}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted);">${d.cod_cli}</div>
+                </td>
+                <td class="c"><span class="badge" style="padding: 2px 6px; font-size: 0.75rem; background:rgba(0,180,255,0.15); color:var(--primary);">${d.tipo_ref || '—'}</span></td>
+                <td>${d.factura ? `<span class="code-badge">${d.factura}</span>` : '<span style="color:var(--text-muted);">—</span>'}</td>
                 <td class="r" style="font-weight:700;">${fmtCur(mBs, '')}</td>
                 <td class="r" style="font-weight:700; color:var(--accent-green);">$ ${new Intl.NumberFormat('en-US',{minimumFractionDigits:2}).format(mUsd)}</td>
             </tr>`;
