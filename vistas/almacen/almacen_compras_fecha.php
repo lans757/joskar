@@ -20,7 +20,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === 'proveedores') {
     $f_fin = $_GET['f_fin'] ?? date('Y-m-d');
     $f_txt = $_GET['f_txt'] ?? '';
     
-    $where = "WHERE c.recep >= :ini AND c.recep <= :fin";
+    $where = "WHERE c.estampa >= :ini AND c.estampa <= :fin";
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
     
     if (!empty($f_txt) && strlen(trim($f_txt)) >= 2) {
@@ -82,7 +82,7 @@ try {
 
     // --- Query Principal: Listado de Compras ---
     $params = [':ini' => $f_ini, ':fin' => $f_fin];
-    $where = "WHERE c.recep >= :ini AND c.recep <= :fin";
+    $where = "WHERE c.estampa >= :ini AND c.estampa <= :fin";
     
     if (!empty($f_prov)) {
         $where .= " AND c.proveed = :prov";
@@ -132,7 +132,7 @@ try {
         FROM scst c
         INNER JOIN sprv p ON c.proveed = p.proveed
         $where
-        ORDER BY c.recep DESC, c.numero DESC
+        ORDER BY c.estampa DESC, c.numero DESC
         LIMIT :limit OFFSET :offset
     ");
     $stmt_list->bindValue(':limit', $limit, PDO::PARAM_INT);
@@ -198,17 +198,11 @@ function formatDL($val) { return '$ ' . number_format($val, 2, ',', '.'); }
             </div>
         </div>
         <div class="card metric-card success">
-            <div class="metric-icon"><i class="fas fa-money-bill-wave"></i></div>
-            <div class="metric-content">
-                <span class="metric-label">Total en Bolívares</span>
-                <p class="metric-value"><?php echo formatBs($kpis['monto_total'] ?? 0); ?></p>
-            </div>
-        </div>
-        <div class="card metric-card info">
             <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
             <div class="metric-content">
-                <span class="metric-label">Total en Divisas</span>
+                <span class="metric-label">Monto Total</span>
                 <p class="metric-value"><?php echo formatDL($kpis['monto_total_d'] ?? 0); ?></p>
+                <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;"><?php echo formatBs($kpis['monto_total'] ?? 0); ?></span>
             </div>
         </div>
         <div class="card metric-card warning">
@@ -224,11 +218,11 @@ function formatDL($val) { return '$ ' . number_format($val, 2, ',', '.'); }
     <div class="card filters-card">
         <form method="GET" class="filters-row">
             <div class="filter-group">
-                <label>Desde (Recepción)</label>
+                <label>Desde (Registro)</label>
                 <input type="date" name="f_ini" value="<?php echo $f_ini; ?>">
             </div>
             <div class="filter-group">
-                <label>Hasta (Recepción)</label>
+                <label>Hasta (Registro)</label>
                 <input type="date" name="f_fin" value="<?php echo $f_fin; ?>">
             </div>
             <div class="filter-group" style="flex-grow: 1;">
